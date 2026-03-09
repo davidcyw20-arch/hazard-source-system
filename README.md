@@ -147,6 +147,14 @@ flask import-all-sql --root .
 flask seed-demo
 ```
 
+可选：仅补齐内置危化品参考数据（幂等，可反复执行）
+
+```powershell
+flask seed-reference-data
+```
+
+> 说明：`import-all-sql` / `import-gb18218-sql` 已增加编码自动识别（UTF-8/UTF-8-SIG/GB18030/GBK），可缓解 SQL 文件中文名称乱码问题。
+
 ### 4.4 运行系统
 
 ```powershell
@@ -256,3 +264,23 @@ flask import-all-sql --root .
 
 当前版本已改为跨数据库 upsert（SQLite/MySQL 均可导入）。
 
+
+### 10.5 导入后中文名称乱码（如“姘箼鐑?....”）
+
+通常是 SQL 文件编码与读取编码不一致导致（常见于 GBK 导出的 SQL 被按 UTF-8 读取）。
+
+当前版本已在导入命令中增加自动编码识别（UTF-8 / UTF-8-SIG / GB18030 / GBK）：
+
+```powershell
+flask import-gb18218-sql --file .\GB18218_full_seed.sql
+# 或
+flask import-all-sql --root .
+```
+
+如果历史上已导入了乱码数据，建议先清理旧库后重新导入，或改用：
+
+```powershell
+flask seed-reference-data
+```
+
+补齐一批内置中文参考化学品数据。
