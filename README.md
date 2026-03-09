@@ -205,3 +205,14 @@ flask create-admin --username admin --password admin123
    - 确认该用户有目标库权限（`SELECT/INSERT/UPDATE/DELETE/CREATE/ALTER`）
 
 > 从本版本开始，系统默认数据库已改为 SQLite，未配置 `DATABASE_URL` 时不会再默认连接 `root:root@localhost`。
+
+
+### 10.2 提示“数据库连接失败”但你已经改成 SQLite
+
+这通常是 SQLite 文件已创建但表结构尚未初始化（或首次启动尚未建表）。
+
+建议顺序：
+1. 执行 `flask init-db` 初始化默认数据（管理员、规则、示例化学品）。
+2. 若仅做快速本地体验，也可直接重启应用（系统会在 SQLite 下自动建表）。
+3. 然后使用管理员账号登录：`admin / admin123`。
+

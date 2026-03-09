@@ -30,6 +30,7 @@ def create_app():
     register_cli(app)
     _register_template_helpers(app)
     _register_error_handlers(app)
+    _auto_prepare_sqlite(app)
     return app
 
 
@@ -64,10 +65,30 @@ def _register_error_handlers(app: Flask):
     from sqlalchemy.exc import OperationalError
 
     @app.errorhandler(OperationalError)
-    def handle_db_operational_error(_e):
-        # Friendly message for common local setup issue (wrong MySQL credentials / DB unavailable).
-        flash(
-            "数据库连接失败，请检查 DATABASE_URL（账号/密码/主机）或先使用 SQLite 本地库启动。",
-            "danger",
-        )
+    def handle_db_operational_error(e):
+        msg = str(getattr(e, "orig", e))
+        if "Access denied" in msg or "1045" in msg:
+            flash(
+                "MySQL 认证失败：请检查 .env 中 DATABASE_URL 的用户名/密码和数据库权限。",
+                "danger",
+            )
+        elif "no such table" in msg:
+            flash(
+                "数据库尚未初始化，请先执行 `flask init-db`（或首次使用 SQLite 时重启应用自动建表）。",
+                "warning",
+            )
+        elif "Can't connect" in msg or "Connection refused" in msg:
+            flash("数据库服务不可达，请确认数据库已启动且主机端口配置正确。", "danger")
+        else:
+            flash("数据库连接失败，请检查 DATABASE_URL 配置。", "danger")
         return redirect(url_for("auth.login"))
+
+
+
+def _auto_prepare_sqlite(app: Flask) -> None:
+    uri = str(app.config.get("SQLALCHEMY_DATABASE_URI", ""))
+    if not uri.startswith("sqlite"):
+        return
+    # Improve first-run experience: ensure SQLite tables exist to avoid login-time errors.
+    with app.app_context():
+        db.create_all()
