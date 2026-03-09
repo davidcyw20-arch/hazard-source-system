@@ -92,15 +92,23 @@ pip install -r requirements.txt
 
 > 如果提示 `Activate.ps1` 无法识别，请确认在项目根目录执行 `\.venv\Scripts\Activate.ps1`。
 
-### 4.2 配置数据库（MySQL）
+### 4.2 配置数据库（推荐先用 SQLite，再切 MySQL）
 
-1. 创建数据库：`hazard_source_system`（建议 `utf8mb4`）
-2. 配置环境变量：复制 `.env.example` 为 `.env`，修改 `DATABASE_URL`
+1. 复制环境变量模板：将 `.env.example` 复制为 `.env`
+2. **首次运行推荐直接使用默认 SQLite**（无需安装 MySQL）
+3. 需要接入 MySQL 时，再设置 `DATABASE_URL`
 
-示例：
+SQLite 示例：
 
 ```env
-DATABASE_URL=mysql+pymysql://root:root@127.0.0.1:3306/hazard_source_system?charset=utf8mb4
+DATABASE_URL=sqlite:///instance/hazard_source_system.db
+SECRET_KEY=replace-this-with-a-random-string
+```
+
+MySQL 示例（请替换真实账号密码）：
+
+```env
+DATABASE_URL=mysql+pymysql://your_user:your_password@127.0.0.1:3306/hazard_source_system?charset=utf8mb4
 SECRET_KEY=replace-this-with-a-random-string
 ```
 
@@ -176,3 +184,24 @@ flask create-admin --username admin --password admin123
 - 生产环境务必修改 `SECRET_KEY`、数据库账号密码。
 - 建议启用 HTTPS、数据库定时备份与审计日志保留策略。
 - 如果导入 GB 全量数据，请优先使用系统提供的“校验/去重/参数更新”流程。
+
+
+## 10. 常见问题排查
+
+### 10.1 登录后报错：`OperationalError (1045) Access denied for user 'root'@'localhost'`
+
+原因：`DATABASE_URL` 使用了错误的 MySQL 用户名/密码，或 MySQL 未授权该用户。
+
+处理方式（任选其一）：
+
+1. **最快方案：切换到 SQLite（推荐开发环境）**
+   - 在 `.env` 中设置：
+   - `DATABASE_URL=sqlite:///instance/hazard_source_system.db`
+   - 重新执行 `flask init-db` 后启动系统。
+
+2. **继续使用 MySQL**
+   - 确认数据库已创建：`hazard_source_system`
+   - 将 `.env` 中的 `DATABASE_URL` 改为真实账号密码
+   - 确认该用户有目标库权限（`SELECT/INSERT/UPDATE/DELETE/CREATE/ALTER`）
+
+> 从本版本开始，系统默认数据库已改为 SQLite，未配置 `DATABASE_URL` 时不会再默认连接 `root:root@localhost`。

@@ -60,3 +60,14 @@ def _register_error_handlers(app: Flask):
     def handle_csrf_error(_e):
         flash("表单已过期或校验失败，请刷新页面后重试。", "warning")
         return redirect(request.referrer or url_for("user.dashboard"))
+
+    from sqlalchemy.exc import OperationalError
+
+    @app.errorhandler(OperationalError)
+    def handle_db_operational_error(_e):
+        # Friendly message for common local setup issue (wrong MySQL credentials / DB unavailable).
+        flash(
+            "数据库连接失败，请检查 DATABASE_URL（账号/密码/主机）或先使用 SQLite 本地库启动。",
+            "danger",
+        )
+        return redirect(url_for("auth.login"))
