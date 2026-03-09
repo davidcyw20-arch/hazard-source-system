@@ -1,0 +1,44 @@
+{% extends "layout.html" %}
+{% block title %}操作记录{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="title">
+    <div class="icon-circle bg-primary text-white"><i class="bi bi-clock-history"></i></div>
+    <div>
+      <h1>个人历史操作记录</h1>
+      <p>用于数据追溯与规范化使用</p>
+    </div>
+  </div>
+  <div class="actions">
+    <a class="btn btn-outline-secondary" href="{{ url_for('user.dashboard') }}">返回</a>
+  </div>
+</div>
+
+<div class="card p-3 table-card">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>时间</th>
+          <th>动作</th>
+          <th>详情</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in logs %}
+          <tr>
+            <td class="text-muted small">{{ l.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td>
+              <span class="badge text-bg-light">{{ label_action(l.action) }}</span>
+              <span class="text-muted small ms-2">{{ l.action }}</span>
+            </td>
+            <td class="text-muted small">{{ l.detail or '-' }}</td>
+            <td class="text-muted small">{{ l.ip or '-' }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

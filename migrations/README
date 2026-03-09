@@ -1,0 +1,6 @@
+Alembic migrations live here.
+
+Quick start (PowerShell):
+- `pip install -r requirements.txt`
+- `$env:DATABASE_URL="mysql+pymysql://user:pass@127.0.0.1:3306/hazard_source_system?charset=utf8mb4"`
+- `python -m alembic -c alembic.ini upgrade head`

@@ -1,0 +1,35 @@
+{% extends "admin/layout.html" %}
+{% set admin_active='rules' %}
+{% block title %}评估规则{% endblock %}
+{% block page_title %}判定与等级评估参数{% endblock %}
+{% block page_meta %}维护判定规则与等级划分区间，确保评估逻辑符合现行标准{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <div class="text-muted small">维护判定规则与等级划分区间（可配置）</div>
+  <a class="btn btn-primary" href="{{ url_for('admin.rules_new') }}"><i class="bi bi-plus-lg me-1"></i>新增</a>
+</div>
+<div class="table-card">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>名称</th>
+          <th>启用</th>
+          <th>更新时间</th>
+          <th class="text-end">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rules %}
+          <tr>
+            <td>{{ r.name }}</td>
+            <td>{% if r.is_active %}<span class="badge text-bg-success">启用</span>{% else %}<span class="badge text-bg-secondary">未启用</span>{% endif %}</td>
+            <td class="text-muted small">{{ r.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin.rules_edit', rule_id=r.id) }}">编辑</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

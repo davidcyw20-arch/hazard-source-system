@@ -1,0 +1,116 @@
+{% extends "admin/layout.html" %}
+{% set admin_active='chemicals' %}
+{% block title %}化学品与临界量{% endblock %}
+{% block page_title %}GB 18218-2018 参数库{% endblock %}
+{% block page_meta %}维护临界量 Qi、类别符号与 β（表1/表2/表3/表4）{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <form class="d-flex gap-2" method="get">
+    <div class="input-group">
+      <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+      <input class="form-control" name="q" value="{{ q }}" placeholder="搜索：名称 / CAS" />
+    </div>
+    <button class="btn btn-outline-primary" type="submit">查询</button>
+  </form>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-primary" data-bs-toggle="collapse" href="#gbImport" role="button" aria-expanded="false" aria-controls="gbImport">
+      <i class="bi bi-upload me-1"></i>标准全量导入
+    </a>
+    <form method="post" action="{{ url_for('admin.chemicals_dedup') }}" class="d-inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <button class="btn btn-outline-secondary" type="submit" onclick="return confirm('将按 (名称 + CAS) 去重，并自动关联储存记录，确认继续？')">
+        <i class="bi bi-intersect me-1"></i>去重
+      </button>
+    </form>
+    <a class="btn btn-primary" href="{{ url_for('admin.chemicals_new') }}"><i class="bi bi-plus-lg me-1"></i>新增</a>
+  </div>
+</div>
+
+<div class="collapse mb-3 {% if validation_report %}show{% endif %}" id="gbImport">
+  <div class="card p-3">
+    <div class="fw-semibold mb-1">导入/校验 GB18218_full_seed.sql</div>
+    <div class="text-muted small">建议先点“校验”再“导入”，避免因 SQL 文件格式问题导致导入失败。</div>
+    <form method="post" action="{{ url_for('admin.chemicals_import_gb18218') }}" enctype="multipart/form-data" class="mt-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <div class="row g-2 align-items-center">
+        <div class="col-md-7">
+          <input class="form-control" type="file" name="file" accept=".sql,text/plain" required />
+        </div>
+        <div class="col-md-5">
+          <div class="d-grid gap-2 d-md-flex">
+            <button class="btn btn-outline-secondary flex-fill" type="submit" formaction="{{ url_for('admin.chemicals_validate_gb18218') }}">
+              <i class="bi bi-clipboard-check me-1"></i>校验
+            </button>
+            <button class="btn btn-success flex-fill" type="submit">
+              <i class="bi bi-cloud-arrow-up me-1"></i>导入
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    {% if validation_report %}
+      <hr class="my-3" />
+      <div class="fw-semibold mb-1">校验结果</div>
+      <div class="small text-muted">
+        化学品 INSERT：{{ validation_report.chemicals_total_inserts }} 条；可导入：{{ validation_report.chemicals_importable }} 条；跳过：{{ validation_report.chemicals_skipped }} 条
+      </div>
+      <div class="small text-muted">
+        α规则：{{ validation_report.alpha_rules }} 条；等级规则：{{ validation_report.level_rules }} 条；类别临界量：{{ validation_report.category_thresholds }} 条；类别β：{{ validation_report.category_betas }} 条
+      </div>
+      {% if validation_report.skipped_samples %}
+        <div class="mt-2 small">
+          <div class="text-muted mb-1">跳过示例（最多 {{ validation_report.skipped_samples|length }} 条）：</div>
+          <ul class="mb-0">
+            {% for s in validation_report.skipped_samples %}
+              <li>{{ s }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+
+<div class="table-card">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>名称</th>
+          <th>类别</th>
+          <th class="text-end">临界量</th>
+          <th>类别符号</th>
+          <th class="text-end">β</th>
+          <th>CAS</th>
+          <th class="text-end">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in chemicals %}
+          {% set ref_cnt = usage_counts.get(c.id, 0) if usage_counts is defined else 0 %}
+          <tr>
+            <td>{{ c.name }}</td>
+            <td>{{ c.category or '-' }}</td>
+            <td class="text-end">{{ "%.3f"|format(c.critical_quantity) }} {{ c.unit }}</td>
+            <td>{{ c.hazard_category_symbol or '-' }}</td>
+            <td class="text-end">{{ ("%.3f"|format(c.beta)) if c.beta is not none else '-' }}</td>
+            <td>{{ c.cas_no or '-' }}</td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin.chemicals_edit', chem_id=c.id) }}">编辑</a>
+              <form method="post" action="{{ url_for('admin.chemicals_delete', chem_id=c.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                {% if ref_cnt > 0 %}
+                  <button class="btn btn-sm btn-outline-danger" type="submit" disabled title="已被 {{ ref_cnt }} 条储存记录引用，无法删除">删除</button>
+                {% else %}
+                  <button class="btn btn-sm btn-outline-danger" type="submit" onclick="return confirm('确认删除？')">删除</button>
+                {% endif %}
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

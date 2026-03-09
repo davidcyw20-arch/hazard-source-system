@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+{% block title %}基本信息{% endblock %}
+{% block content %}
+<div class="card p-4 card-hover">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <div class="fw-semibold fs-5">企业/个人基本信息</div>
+      <div class="text-muted small">用于报告生成与数据追溯</div>
+    </div>
+    <div class="text-muted small">账号：{{ current_user.username }}</div>
+  </div>
+  <form method="post">
+    {{ form.hidden_tag() }}
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">{{ form.company_name.label }}</label>
+        {{ form.company_name(class="form-control", placeholder="如：某某化工有限公司") }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ form.contact_name.label }}</label>
+        {{ form.contact_name(class="form-control", placeholder="姓名") }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ form.phone.label }}</label>
+        {{ form.phone(class="form-control", placeholder="电话") }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ form.address.label }}</label>
+        {{ form.address(class="form-control", placeholder="地址") }}
+      </div>
+    </div>
+    <button class="btn btn-primary mt-3" type="submit">保存</button>
+  </form>
+  <hr class="my-4" />
+  <div class="d-flex justify-content-between align-items-center">
+    <div class="text-muted small">可追溯：查看最近操作记录（登录、录入、评估、导出等）</div>
+    <a class="btn btn-outline-primary btn-sm" href="{{ url_for('user.history') }}">查看操作记录</a>
+  </div>
+</div>
+{% endblock %}

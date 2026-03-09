@@ -1,0 +1,87 @@
+{% extends "layout.html" %}
+{% block title %}储存信息{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div class="title">
+    <div class="icon-circle bg-primary text-white"><i class="bi bi-box-seam"></i></div>
+    <div>
+      <h1>企业危险化学品储存信息</h1>
+      <p>按企业分组，录入后可一键生成辨识与等级评估结果</p>
+    </div>
+  </div>
+  <div class="actions">
+    <a class="btn btn-primary" href="{{ url_for('user.storage_new') }}"><i class="bi bi-plus-lg me-1"></i>新增</a>
+  </div>
+</div>
+
+{% if not records %}
+  <div class="card p-4 text-center text-muted">暂无记录，点击右上角“新增”开始录入。</div>
+{% else %}
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="card p-3 card-hover">
+        <div class="d-flex align-items-center justify-content-between">
+          <div class="fw-semibold">按企业生成评估</div>
+          <span class="badge badge-soft">R = Σ(Qi/Q0i)</span>
+        </div>
+        <form method="post" action="{{ url_for('user.evaluate') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <select class="form-select" name="enterprise_name" required>
+            {% for grp in records|groupby('enterprise_name') %}
+              <option value="{{ grp.grouper }}">{{ grp.grouper }}（{{ grp.list|length }} 条）</option>
+            {% endfor %}
+          </select>
+          <div class="row g-2 mt-2">
+            <div class="col-12">
+              <label class="form-label small text-muted mb-1">500m 范围暴露人口（用于 GB 18218 α）</label>
+              <input class="form-control" type="number" min="0" step="1" name="exposure_people_500m" value="0" />
+            </div>
+          </div>
+          <button class="btn btn-success w-100 mt-2" type="submit">
+            <i class="bi bi-calculator me-1"></i>自动辨识与评估
+          </button>
+        </form>
+        <div class="text-muted small mt-2">提示：建议同一企业的多种化学品分条录入，系统自动汇总计算。</div>
+      </div>
+    </div>
+    <div class="col-lg-8">
+      <div class="card p-3 table-card">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead>
+              <tr>
+                <th>企业</th>
+                <th>单元</th>
+                <th>化学品</th>
+                <th class="text-end">储存量</th>
+                <th class="text-end">临界量</th>
+                <th class="text-end">Qi/Q0i</th>
+                <th class="text-end">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in records %}
+                <tr>
+                  <td class="text-truncate" style="max-width: 160px;">{{ r.enterprise_name }}</td>
+                  <td class="text-muted small">{{ r.unit_name or '-' }}</td>
+                  <td>{{ r.chemical.name }}</td>
+                  <td class="text-end">{{ "%.3f"|format(r.amount) }} {{ r.unit }}</td>
+                  <td class="text-end">{{ "%.3f"|format(r.chemical.critical_quantity) }} {{ r.chemical.unit }}</td>
+                  <td class="text-end">{{ "%.4f"|format(r.amount / r.chemical.critical_quantity) }}</td>
+                  <td class="text-end">
+                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('user.storage_edit', record_id=r.id) }}">编辑</a>
+                    <form method="post" action="{{ url_for('user.storage_delete', record_id=r.id) }}" class="d-inline">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                      <button class="btn btn-sm btn-outline-danger" type="submit" onclick="return confirm('确认删除？')">删除</button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

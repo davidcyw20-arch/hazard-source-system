@@ -1,0 +1,89 @@
+{% extends "admin/layout.html" %}
+{% set admin_active='dashboard' %}
+{% block title %}概览/统计{% endblock %}
+{% block page_title %}概览与统计分析{% endblock %}
+{% block page_meta %}系统运行概况、审核进度与关键数据统计{% endblock %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-md-4">
+    <div class="card p-4 stat-card primary card-hover">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="opacity-75 small">注册用户</div>
+          <div class="fs-3 fw-semibold">{{ user_count }}</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-people"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-4 stat-card dark card-hover">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="opacity-75 small">化学品基表</div>
+          <div class="fs-3 fw-semibold">{{ chemical_count }}</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-droplet-half"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-4 stat-card warning card-hover">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="opacity-75 small">待审核结果</div>
+          <div class="fs-3 fw-semibold">{{ pending_count }}</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-4 stat-card success card-hover">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="opacity-75 small">储存记录总数</div>
+          <div class="fs-3 fw-semibold">{{ storage_count }}</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-boxes"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-4 stat-card primary card-hover">
+      <div class="d-flex align-items-start justify-content-between">
+        <div>
+          <div class="opacity-75 small">评估结果总数</div>
+          <div class="fs-3 fw-semibold">{{ result_count }}</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-clipboard-check"></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="my-4" />
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="p-3 p-md-4 rounded-4 bg-light consideration">
+      <div class="fw-semibold mb-2">审核进度</div>
+      {% set total = (pending_count + approved_count + rejected_count) %}
+      <div class="text-muted small mb-2">总计 {{ total }} 条；待审核 {{ pending_count }}、已通过 {{ approved_count }}、已驳回 {{ rejected_count }}</div>
+      <div class="progress" role="progressbar" aria-label="review progress" style="height: 10px;">
+        <div class="progress-bar bg-warning" style="width: {{ (pending_count / total * 100) if total else 0 }}%"></div>
+        <div class="progress-bar bg-success" style="width: {{ (approved_count / total * 100) if total else 0 }}%"></div>
+        <div class="progress-bar bg-danger" style="width: {{ (rejected_count / total * 100) if total else 0 }}%"></div>
+      </div>
+      <div class="text-muted small mt-2">提示：在“评估结果审核”中可进行通过/驳回，并形成监管决策依据。</div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="p-3 p-md-4 rounded-4 bg-light">
+      <div class="fw-semibold mb-2">系统运行状态</div>
+      <div class="text-muted small">服务器时间：{{ server_time }}</div>
+      <div class="text-muted small mt-1">建议定期在“备份与恢复”导出 Excel/JSON 备份。</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

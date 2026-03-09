@@ -1,0 +1,55 @@
+{% extends "admin/layout.html" %}
+{% set admin_active='chemicals' %}
+{% block title %}{{ '新增' if mode=='new' else '编辑' }}化学品{% endblock %}
+{% block page_title %}{{ '新增' if mode=='new' else '编辑' }}化学品/临界量{% endblock %}
+{% block page_meta %}统一维护化学品基础信息，为辨识与评估提供标准数据支撑{% endblock %}
+{% block content %}
+  <div class="fw-semibold fs-5 mb-2">{{ '新增' if mode=='new' else '编辑' }}化学品/临界量</div>
+  <form method="post">
+    {{ form.hidden_tag() }}
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">{{ form.name.label }}</label>
+        {{ form.name(class="form-control") }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ form.category.label }}</label>
+        {{ form.category(class="form-control") }}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">{{ form.cas_no.label }}</label>
+        {{ form.cas_no(class="form-control") }}
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">{{ form.critical_quantity.label }}</label>
+        {{ form.critical_quantity(class="form-control") }}
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">{{ form.unit.label }}</label>
+        {{ form.unit(class="form-control") }}
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">{{ form.hazard_category_symbol.label }}</label>
+        {{ form.hazard_category_symbol(class="form-control", placeholder="如：A/B/...") }}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">{{ form.beta.label }}</label>
+        {{ form.beta(class="form-control", placeholder="可留空由类别推导") }}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">{{ form.beta_source.label }}</label>
+        {{ form.beta_source(class="form-control", placeholder="可选") }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ form.gb_version.label }}</label>
+        {{ form.gb_version(class="form-control", placeholder="GB 18218-2018（默认）") }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{{ form.source_standard.label }}</label>
+        {{ form.source_standard(class="form-control") }}
+      </div>
+    </div>
+    <button class="btn btn-primary mt-3" type="submit">保存</button>
+    <a class="btn btn-outline-secondary mt-3" href="{{ url_for('admin.chemicals_list') }}">返回</a>
+  </form>
+{% endblock %}

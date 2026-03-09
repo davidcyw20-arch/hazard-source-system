@@ -1,0 +1,45 @@
+{% extends "admin/layout.html" %}
+{% set admin_active='storage' %}
+{% block title %}储存信息{% endblock %}
+{% block page_title %}企业危险化学品储存信息{% endblock %}
+{% block page_meta %}集中管理储存场所、方式与储存量，规范危险源信息维护{% endblock %}
+{% block content %}
+<div class="table-card">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>用户</th>
+          <th>企业</th>
+          <th>单元</th>
+          <th>化学品</th>
+          <th class="text-end">储存量</th>
+          <th>场所/方式</th>
+          <th>更新时间</th>
+          <th class="text-end">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in records %}
+          <tr>
+            <td>{{ r.owner.username }}</td>
+            <td>{{ r.enterprise_name }}</td>
+            <td class="text-muted small">{{ r.unit_name or '-' }}</td>
+            <td>{{ r.chemical.name }}</td>
+            <td class="text-end">{{ "%.3f"|format(r.amount) }} {{ r.unit }}</td>
+            <td class="text-muted small">{{ (r.location or '-') ~ ' / ' ~ (r.storage_method or '-') }}</td>
+            <td class="text-muted small">{{ r.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin.storage_edit', record_id=r.id) }}">编辑</a>
+              <form method="post" action="{{ url_for('admin.storage_delete', record_id=r.id) }}" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <button class="btn btn-sm btn-outline-danger" type="submit" onclick="return confirm('确认删除？')">删除</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

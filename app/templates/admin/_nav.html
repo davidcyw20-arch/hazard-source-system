@@ -1,0 +1,9 @@
+<ul class="nav nav-pills nav-admin flex-wrap gap-2 mb-3">
+  <li class="nav-item"><a class="nav-link {% if active=='dashboard' %}active{% endif %}" href="{{ url_for('admin.dashboard') }}">概览</a></li>
+  <li class="nav-item"><a class="nav-link {% if active=='users' %}active{% endif %}" href="{{ url_for('admin.users_list') }}">用户</a></li>
+  <li class="nav-item"><a class="nav-link {% if active=='chemicals' %}active{% endif %}" href="{{ url_for('admin.chemicals_list') }}">化学品/临界量</a></li>
+  <li class="nav-item"><a class="nav-link {% if active=='rules' %}active{% endif %}" href="{{ url_for('admin.rules_list') }}">评估规则</a></li>
+  <li class="nav-item"><a class="nav-link {% if active=='storage' %}active{% endif %}" href="{{ url_for('admin.storage_all') }}">储存信息</a></li>
+  <li class="nav-item"><a class="nav-link {% if active=='results' %}active{% endif %}" href="{{ url_for('admin.results_all') }}">评估结果</a></li>
+  <li class="nav-item"><a class="nav-link {% if active=='backup' %}active{% endif %}" href="{{ url_for('admin.backup_page') }}">备份/恢复</a></li>
+</ul>

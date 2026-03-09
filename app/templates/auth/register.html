@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+{% block title %}注册{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7 col-lg-6">
+    <div class="card p-4 card-hover auth-card">
+      <div class="d-flex align-items-center mb-3">
+        <div class="icon-circle bg-success text-white me-2"><i class="bi bi-person-plus"></i></div>
+        <div>
+          <div class="fw-semibold fs-5 page-title">注册账号</div>
+          <div class="text-muted small">创建用户后可录入储存信息并生成评估报告</div>
+        </div>
+      </div>
+      <form method="post">
+        {{ form.hidden_tag() }}
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">{{ form.username.label }}</label>
+            {{ form.username(class="form-control", placeholder="3-50 字符") }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">{{ form.email.label }}</label>
+            {{ form.email(class="form-control", placeholder="可选") }}
+          </div>
+          <div class="col-12">
+            <label class="form-label">{{ form.password.label }}</label>
+            {{ form.password(class="form-control", placeholder="不少于 6 位") }}
+          </div>
+        </div>
+        <button class="btn btn-success w-100 mt-3" type="submit">注册</button>
+      </form>
+      <div class="text-muted small mt-3">
+        已有账号？ <a href="{{ url_for('auth.login') }}">去登录</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

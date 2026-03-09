@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}后台管理{% endblock %} - 重大危险源系统</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}" />
+    {% block head %}{% endblock %}
+  </head>
+  <body class="admin">
+    <div class="admin-shell">
+      <aside class="admin-sidebar">
+        <a class="admin-brand" href="{{ url_for('admin.dashboard') }}">
+          <span class="dot"></span>
+          <span>
+            <div class="name">后台管理</div>
+            <div class="desc">安全监管与数据维护</div>
+          </span>
+        </a>
+
+        <nav class="admin-nav">
+          {% set a = admin_active or '' %}
+          <a class="{% if a=='dashboard' %}active{% endif %}" href="{{ url_for('admin.dashboard') }}">
+            <span class="ico"><i class="bi bi-speedometer2"></i></span>概览/统计
+          </a>
+          <a class="{% if a=='users' %}active{% endif %}" href="{{ url_for('admin.users_list') }}">
+            <span class="ico"><i class="bi bi-people"></i></span>用户管理
+          </a>
+          <a class="{% if a=='chemicals' %}active{% endif %}" href="{{ url_for('admin.chemicals_list') }}">
+            <span class="ico"><i class="bi bi-droplet-half"></i></span>化学品/临界量
+          </a>
+          <a class="{% if a=='rules' %}active{% endif %}" href="{{ url_for('admin.rules_list') }}">
+            <span class="ico"><i class="bi bi-sliders2-vertical"></i></span>判定规则/等级
+          </a>
+          <a class="{% if a=='storage' %}active{% endif %}" href="{{ url_for('admin.storage_all') }}">
+            <span class="ico"><i class="bi bi-boxes"></i></span>企业储存信息
+          </a>
+          <a class="{% if a=='results' %}active{% endif %}" href="{{ url_for('admin.results_all') }}">
+            <span class="ico"><i class="bi bi-clipboard-check"></i></span>评估结果审核
+          </a>
+          <a class="{% if a=='backup' %}active{% endif %}" href="{{ url_for('admin.backup_page') }}">
+            <span class="ico"><i class="bi bi-database-check"></i></span>备份与恢复
+          </a>
+        </nav>
+
+        <div class="mt-3 text-white-50 small px-2">
+          当前账号：<span class="text-white">{{ current_user.username }}</span>
+          <span class="ms-2 badge text-bg-light">管理员</span>
+        </div>
+      </aside>
+
+      <main class="admin-content">
+        <div class="admin-topbar">
+          <div>
+            <div class="title">{% block page_title %}后台管理{% endblock %}</div>
+            <div class="meta">{% block page_meta %}用于系统后台维护与监管分析{% endblock %}</div>
+          </div>
+          <div class="d-flex gap-2 flex-wrap justify-content-end">
+            <a class="btn btn-sm btn-light" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right me-1"></i>退出登录</a>
+          </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'warning' if category == 'message' else category }} alert-dismissible fade show shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="admin-card p-3 p-md-4">
+          {% block content %}{% endblock %}
+        </div>
+
+        <div class="admin-footer">危险化学品重大危险源自动辨识与等级评估系统 · 后台管理</div>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>重大危险源辨识与等级评估报告</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 16mm 14mm;
+      }
+      body {
+        font-family: "STSong-Light", Helvetica, Arial, "Microsoft YaHei", sans-serif;
+        font-size: 11px;
+        color: #0f172a;
+        line-height: 1.45;
+      }
+      .muted { color: #475569; }
+      .title {
+        font-size: 18px;
+        font-weight: 700;
+        margin: 0;
+        padding: 0;
+      }
+      .subtitle { margin-top: 4px; }
+      .divider { border-top: 1px solid #e2e8f0; margin: 10px 0; }
+      .section-title {
+        font-size: 12.5px;
+        font-weight: 700;
+        margin: 0 0 6px;
+      }
+
+      .card {
+        border: 1px solid #e2e8f0;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 8px;
+      }
+      .kv {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .kv td {
+        padding: 4px 6px;
+        border: 0;
+        vertical-align: top;
+      }
+      .kv .k { width: 88px; color: #334155; }
+      .kv .v { color: #0f172a; }
+
+      .badge-danger { color: #b42318; font-weight: 700; }
+      .badge-ok { color: #1a7f37; font-weight: 700; }
+
+      table.data {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      table.data th, table.data td {
+        border: 1px solid #e2e8f0;
+        padding: 6px 6px;
+        vertical-align: top;
+        word-wrap: break-word;
+      }
+      table.data th {
+        background: #f1f5ff;
+        color: #1f2937;
+        font-weight: 700;
+      }
+      .right { text-align: right; }
+      .center { text-align: center; }
+      tr { page-break-inside: avoid; }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div class="title">危险化学品重大危险源辨识与等级评估报告</div>
+      <div class="muted subtitle">
+        标准依据：{{ result.basis.standard }}；
+        计算公式：式(1) {{ result.basis.formula_s }}；式(2) {{ result.basis.formula_r }}
+      </div>
+    </div>
+    <div class="divider"></div>
+
+    <div class="card">
+      <div class="section-title">基本信息</div>
+      <table class="kv">
+        <tr>
+          <td class="k"><b>企业/单位</b></td>
+          <td class="v">{{ result.enterprise_name }}</td>
+          <td class="k"><b>生成时间</b></td>
+          <td class="v">{{ result.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+        </tr>
+        <tr>
+          <td class="k"><b>提交用户</b></td>
+          <td class="v" colspan="3">{{ user.company_name or user.username }}（{{ user.username }}）</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="section-title">判定结论</div>
+      <table class="kv">
+        <tr>
+          <td class="k"><b>S 值</b></td>
+          <td class="v"><b>{{ "%.4f"|format(result.s_value or 0) }}</b></td>
+          <td class="k"><b>暴露人口/α</b></td>
+          <td class="v">{{ result.exposure_people_500m or 0 }} / {{ "%.3f"|format(result.alpha_used or 1) }}</td>
+        </tr>
+        <tr>
+          <td class="k"><b>R 值</b></td>
+          <td class="v"><b>{{ "%.4f"|format(result.r_value) }}</b></td>
+          <td class="k"><b>等级</b></td>
+          <td class="v">{{ result.level_by_gb or (result.level or "-") }}</td>
+        </tr>
+        <tr>
+          <td class="k"><b>判定</b></td>
+          <td class="v">
+            {% if result.is_major_hazard %}
+              <span class="badge-danger">重大危险源</span>
+            {% else %}
+              <span class="badge-ok">非重大危险源</span>
+            {% endif %}
+          </td>
+          <td class="k"><b>审核状态</b></td>
+          <td class="v">{{ label_review_status(result.status) }}</td>
+        </tr>
+        {% if result.review_remark %}
+        <tr>
+          <td class="k"><b>审核备注</b></td>
+          <td class="v" colspan="3">{{ result.review_remark }}</td>
+        </tr>
+        {% endif %}
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="section-title">计算明细</div>
+      <table class="data">
+        <thead>
+          <tr>
+            <th style="width: 18%;">化学品</th>
+            <th style="width: 12%;">类别</th>
+            <th class="right" style="width: 14%;">Qi</th>
+            <th class="right" style="width: 14%;">Q0i</th>
+            <th class="right" style="width: 12%;">Qi/Q0i</th>
+            <th style="width: 15%;">场所</th>
+            <th style="width: 15%;">方式</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set unit0 = (result.basis.get('units', [])|first) %}
+          {% set items = (unit0.get('items', []) if unit0 else result.basis.get('items', [])) %}
+          {% for it in items %}
+          <tr style="background: {{ '#ffffff' if loop.index is odd else '#fbfdff' }};">
+            <td>{{ it.chemical }}</td>
+            <td class="muted">{{ it.category or '-' }}</td>
+            <td class="right">
+              {% if unit0 %}{{ "%.3f"|format(it.qi) }} {{ it.qi_unit }}{% else %}{{ "%.3f"|format(it.amount) }} {{ it.amount_unit }}{% endif %}
+            </td>
+            <td class="right">
+              {% if unit0 %}{{ "%.3f"|format(it.Qi) }} {{ it.Qi_unit }}{% else %}{{ "%.3f"|format(it.critical_quantity) }} {{ it.critical_unit }}{% endif %}
+            </td>
+            <td class="right"><b>{{ "%.4f"|format(it.ratio) }}</b></td>
+            <td>{{ it.location or "-" }}</td>
+            <td>{{ it.storage_method or "-" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="muted" style="margin-top:8px;">说明：{{ result.basis.note }}</div>
+    </div>
+
+    <div class="muted">本报告由系统自动生成，可用于留存与教学展示。</div>
+  </body>
+</html>
