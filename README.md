@@ -216,3 +216,13 @@ flask create-admin --username admin --password admin123
 2. 若仅做快速本地体验，也可直接重启应用（系统会在 SQLite 下自动建表）。
 3. 然后使用管理员账号登录：`admin / admin123`。
 
+
+
+### 10.3 仍然提示数据库连接失败（常见隐藏原因）
+
+请重点检查 `.env` 中是否出现下面情况：
+- `DATABASE_URL=`（等号后是空值）
+- `DATABASE_URL` 格式拼写错误（例如少了 `sqlite:///` 或 `mysql+pymysql://`）
+
+建议直接复制 `.env.example` 中任一完整示例再修改。
+

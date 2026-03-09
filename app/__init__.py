@@ -77,10 +77,12 @@ def _register_error_handlers(app: Flask):
                 "数据库尚未初始化，请先执行 `flask init-db`（或首次使用 SQLite 时重启应用自动建表）。",
                 "warning",
             )
+        elif "Could not parse SQLAlchemy URL" in msg:
+            flash("DATABASE_URL 格式无效或为空，请在 .env 中配置正确连接串。", "danger")
         elif "Can't connect" in msg or "Connection refused" in msg:
             flash("数据库服务不可达，请确认数据库已启动且主机端口配置正确。", "danger")
         else:
-            flash("数据库连接失败，请检查 DATABASE_URL 配置。", "danger")
+            flash(f"数据库连接失败：{msg[:120]}。请检查 DATABASE_URL 配置。", "danger")
         return redirect(url_for("auth.login"))
 
 

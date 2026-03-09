@@ -11,11 +11,9 @@ DEFAULT_SQLITE_PATH.parent.mkdir(parents=True, exist_ok=True)
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-me")
     # Use local SQLite as the safe default to avoid MySQL auth errors on first run.
-    # Production should override DATABASE_URL via environment variables.
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL",
-        f"sqlite:///{DEFAULT_SQLITE_PATH.as_posix()}",
-    )
+    # NOTE: treat empty DATABASE_URL as unset (common .env mistake), then fallback to SQLite.
+    _database_url = os.environ.get("DATABASE_URL") or f"sqlite:///{DEFAULT_SQLITE_PATH.as_posix()}"
+    SQLALCHEMY_DATABASE_URI = _database_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
 
