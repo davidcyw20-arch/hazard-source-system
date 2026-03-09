@@ -7,7 +7,13 @@ load_dotenv()
 
 from config import DevelopmentConfig
 
-from .cli import register_cli
+from .cli import (
+    register_cli,
+    _ensure_default_admin,
+    _ensure_default_rules,
+    _ensure_demo_chemicals,
+    _ensure_gb18218_params,
+)
 from .extensions import csrf, db, login_manager
 from .views import admin, api, auth, user
 from .utils.i18n import label_action, label_review_status
@@ -91,6 +97,10 @@ def _auto_prepare_sqlite(app: Flask) -> None:
     uri = str(app.config.get("SQLALCHEMY_DATABASE_URI", ""))
     if not uri.startswith("sqlite"):
         return
-    # Improve first-run experience: ensure SQLite tables exist to avoid login-time errors.
+    # Improve first-run experience: ensure schema + essential seed data exist.
     with app.app_context():
         db.create_all()
+        _ensure_default_rules()
+        _ensure_default_admin()
+        _ensure_demo_chemicals()
+        _ensure_gb18218_params()

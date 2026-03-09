@@ -22,6 +22,12 @@ def load_user(user_id: str):
 def login():
     form = LoginForm()
     if form.validate_on_submit():
+        if User.query.count() == 0:
+            flash(
+                "系统尚未初始化用户数据：请先执行 `flask init-db`，或使用 SQLite 重新启动后再登录。",
+                "warning",
+            )
+            return render_template("auth/login.html", form=form)
         user = User.query.filter_by(username=form.username.data).first()
         if not user or not user.check_password(form.password.data):
             flash("用户名或密码错误", "danger")
