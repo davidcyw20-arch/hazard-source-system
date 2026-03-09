@@ -14,6 +14,25 @@
   </div>
 </div>
 
+<div class="card p-3 mb-3 card-hover">
+  <form class="row g-2" method="get">
+    <div class="col-md-3">
+      <select class="form-select" name="status">
+        <option value="" {% if not status %}selected{% endif %}>全部审核状态</option>
+        <option value="pending" {% if status=='pending' %}selected{% endif %}>待审核</option>
+        <option value="approved" {% if status=='approved' %}selected{% endif %}>已通过</option>
+        <option value="rejected" {% if status=='rejected' %}selected{% endif %}>已驳回</option>
+      </select>
+    </div>
+    <div class="col-md-5">
+      <input class="form-control" type="text" name="enterprise" value="{{ enterprise }}" placeholder="输入企业名称查询" />
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-primary w-100" type="submit"><i class="bi bi-search"></i> 查询</button>
+    </div>
+  </form>
+</div>
+
 {% if not results %}
   <div class="card p-4 text-center text-muted">暂无结果。</div>
 {% else %}
@@ -51,6 +70,7 @@
                 {% else %}
                   <span class="badge text-bg-danger">已驳回</span>
                 {% endif %}
+                {% if r.review_remark %}<div class="small text-muted mt-1">备注：{{ r.review_remark }}</div>{% endif %}
               </td>
               <td class="text-end">
                 <a class="btn btn-sm btn-outline-primary" href="{{ url_for('user.results_detail', result_id=r.id) }}">详情</a>

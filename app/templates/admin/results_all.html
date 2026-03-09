@@ -4,9 +4,56 @@
 {% block page_title %}重大危险源辨识与等级评估结果{% endblock %}
 {% block page_meta %}对系统自动生成的评估结果进行审核与统计分析{% endblock %}
 {% block content %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3 col-6">
+    <div class="card stat-card primary p-3 h-100">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="small opacity-75">结果总数</div>
+          <div class="fs-4 fw-bold">{{ stats.total }}</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-collection"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card stat-card warning p-3 h-100">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="small opacity-75">待审核</div>
+          <div class="fs-4 fw-bold">{{ stats.pending }}</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card stat-card success p-3 h-100">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="small opacity-75">已通过</div>
+          <div class="fs-4 fw-bold">{{ stats.approved }}</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-patch-check"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="card stat-card dark p-3 h-100">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <div class="small opacity-75">重大危险源</div>
+          <div class="fs-4 fw-bold">{{ stats.major }}</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="table-card">
   <form class="row g-2 mb-2" method="get">
-    <div class="col-sm-4">
+    <div class="col-sm-3">
       <select class="form-select" name="status">
         <option value="" {% if not status %}selected{% endif %}>全部状态</option>
         <option value="pending" {% if status=='pending' %}selected{% endif %}>待审核</option>
@@ -14,8 +61,11 @@
         <option value="rejected" {% if status=='rejected' %}selected{% endif %}>已驳回</option>
       </select>
     </div>
+    <div class="col-sm-4">
+      <input class="form-control" type="text" name="q" value="{{ q }}" placeholder="搜索企业名称/用户" />
+    </div>
     <div class="col-sm-2">
-      <button class="btn btn-outline-primary w-100" type="submit">筛选</button>
+      <button class="btn btn-outline-primary w-100" type="submit"><i class="bi bi-funnel me-1"></i>筛选</button>
     </div>
   </form>
   <div class="table-responsive">
@@ -49,21 +99,27 @@
             </td>
             <td class="text-end">
               {% if r.status == 'pending' %}
-                <form method="post" action="{{ url_for('admin.results_review', result_id=r.id) }}" class="d-inline">
+                <form method="post" action="{{ url_for('admin.results_review', result_id=r.id) }}" class="d-inline-flex gap-1 align-items-center flex-wrap justify-content-end">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                  <input type="text" class="form-control form-control-sm review-remark" name="remark" placeholder="审核备注（可选）" maxlength="255" />
                   <input type="hidden" name="action" value="approve" />
                   <button class="btn btn-sm btn-success" type="submit">通过</button>
                 </form>
-                <form method="post" action="{{ url_for('admin.results_review', result_id=r.id) }}" class="d-inline">
+                <form method="post" action="{{ url_for('admin.results_review', result_id=r.id) }}" class="d-inline ms-1">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                   <input type="hidden" name="action" value="reject" />
                   <button class="btn btn-sm btn-outline-danger" type="submit">驳回</button>
                 </form>
               {% else %}
-                <span class="text-muted small">{{ r.reviewed_at.strftime('%Y-%m-%d') if r.reviewed_at else '' }}</span>
+                <div class="small text-muted">
+                  {{ r.reviewed_at.strftime('%Y-%m-%d') if r.reviewed_at else '' }}
+                  {% if r.review_remark %}<div>备注：{{ r.review_remark }}</div>{% endif %}
+                </div>
               {% endif %}
             </td>
           </tr>
+        {% else %}
+          <tr><td colspan="6" class="text-center text-muted py-4">暂无匹配结果</td></tr>
         {% endfor %}
       </tbody>
     </table>
