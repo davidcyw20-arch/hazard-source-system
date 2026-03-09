@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy import or_
 
 from ..extensions import db
@@ -107,42 +106,48 @@ def apply_gb18218_table2_table3_table4_updates(
 
     with db.session.begin_nested():
         for symbol, beta, note in category_betas:
-            stmt = mysql_insert(CategoryBeta.__table__).values(
-                gb_version=gb_version,
-                category_symbol=symbol,
-                beta=float(beta),
-                beta_source="TABLE4",
-                source=f"{gb_version} 表4",
-                note=note,
-            )
-            result = db.session.execute(
-                stmt.on_duplicate_key_update(
-                    beta=stmt.inserted.beta,
-                    beta_source=stmt.inserted.beta_source,
-                    source=stmt.inserted.source,
-                    note=stmt.inserted.note,
+            existing_b = CategoryBeta.query.filter_by(
+                gb_version=gb_version, category_symbol=symbol
+            ).first()
+            if existing_b:
+                existing_b.beta = float(beta)
+                existing_b.beta_source = "TABLE4"
+                existing_b.source = f"{gb_version} 表4"
+                existing_b.note = note
+            else:
+                db.session.add(
+                    CategoryBeta(
+                        gb_version=gb_version,
+                        category_symbol=symbol,
+                        beta=float(beta),
+                        beta_source="TABLE4",
+                        source=f"{gb_version} 表4",
+                        note=note,
+                    )
                 )
-            )
-            upserted_betas += int(result.rowcount or 0)
+            upserted_betas += 1
 
         for symbol, qty, unit, note in category_thresholds:
-            stmt = mysql_insert(CategoryThreshold.__table__).values(
-                gb_version=gb_version,
-                category_symbol=symbol,
-                threshold_quantity=float(qty),
-                unit=unit,
-                source=f"{gb_version} 表2",
-                note=note,
-            )
-            result = db.session.execute(
-                stmt.on_duplicate_key_update(
-                    threshold_quantity=stmt.inserted.threshold_quantity,
-                    unit=stmt.inserted.unit,
-                    source=stmt.inserted.source,
-                    note=stmt.inserted.note,
+            existing_q = CategoryThreshold.query.filter_by(
+                gb_version=gb_version, category_symbol=symbol
+            ).first()
+            if existing_q:
+                existing_q.threshold_quantity = float(qty)
+                existing_q.unit = unit
+                existing_q.source = f"{gb_version} 表2"
+                existing_q.note = note
+            else:
+                db.session.add(
+                    CategoryThreshold(
+                        gb_version=gb_version,
+                        category_symbol=symbol,
+                        threshold_quantity=float(qty),
+                        unit=unit,
+                        source=f"{gb_version} 表2",
+                        note=note,
+                    )
                 )
-            )
-            upserted_thresholds += int(result.rowcount or 0)
+            upserted_thresholds += 1
 
         for cas_no, name_keyword, beta, allow_name_fallback in table3:
             updated = (
