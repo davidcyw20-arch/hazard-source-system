@@ -242,3 +242,17 @@ flask create-admin --username admin --password admin123
 
 建议直接复制 `.env.example` 中任一完整示例再修改。
 
+
+
+### 10.4 导入 `GB18218_full_seed.sql` 报错：`SQLiteCompiler ... OnDuplicateClause`
+
+这是旧版本仅按 MySQL `ON DUPLICATE KEY` 语法导入导致的兼容问题。
+
+请升级到当前版本后重新执行：
+
+```powershell
+flask import-all-sql --root .
+```
+
+当前版本已改为跨数据库 upsert（SQLite/MySQL 均可导入）。
+
