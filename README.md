@@ -119,6 +119,22 @@ $env:FLASK_APP="wsgi.py"
 flask init-db
 ```
 
+#### 一键导入你提到的 4 个 SQL 文件
+
+项目已内置命令，按以下顺序自动导入：
+- `db_schema.sql`
+- `GB18218_full_seed.sql`
+- `GB18218_full_seed_fixed.sql`
+- `db_init_gb18218.sql`
+
+执行命令：
+
+```powershell
+flask import-all-sql --root .
+```
+
+> 如果你的项目在 `E:\hazard-source-system`，请先 `cd E:\hazard-source-system` 再执行上述命令。
+
 已有库升级（保留数据）：
 
 ```powershell
