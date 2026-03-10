@@ -1,45 +1,83 @@
 {% extends "layout.html" %}
 {% block title %}用户首页{% endblock %}
 {% block content %}
+<div class="user-shell-nav mb-3">
+  <a class="item active" href="{{ url_for('user.dashboard') }}"><i class="bi bi-grid-1x2 me-1"></i>总览</a>
+  <a class="item" href="{{ url_for('user.storage_list') }}"><i class="bi bi-box-seam me-1"></i>储存信息</a>
+  <a class="item" href="{{ url_for('user.results_list') }}"><i class="bi bi-clipboard-data me-1"></i>评估结果</a>
+  <a class="item" href="{{ url_for('user.profile') }}"><i class="bi bi-building me-1"></i>企业档案</a>
+</div>
+
+<div class="card p-4 card-hover hero-panel mb-3">
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+    <div>
+      <div class="text-muted small text-uppercase">用户工作台</div>
+      <div class="fs-4 fw-semibold">{{ current_user.company_name or current_user.username }}</div>
+      <div class="text-muted small mt-1">围绕 GB 18218 标准完成录入、辨识、评估与报告导出的一体化流程。</div>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-primary" href="{{ url_for('user.storage_new') }}"><i class="bi bi-plus-lg me-1"></i>新增储存记录</a>
+      <a class="btn btn-outline-primary" href="{{ url_for('user.results_list') }}">查看评估结果</a>
+    </div>
+  </div>
+</div>
+
 <div class="row g-3">
+  <div class="col-md-4">
+    <div class="card p-3 stat-card primary">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="small opacity-75">储存记录总数</div>
+          <div class="fs-3 fw-semibold">{{ storage_count }}</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-database"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-3 stat-card success">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="small opacity-75">评估结果总数</div>
+          <div class="fs-3 fw-semibold">{{ results_count }}</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-bar-chart"></i></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card p-3 stat-card dark">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="small opacity-75">档案完整度</div>
+          <div class="fs-3 fw-semibold">{{ '已完善' if current_user.company_name and current_user.contact_name else '待完善' }}</div>
+        </div>
+        <div class="stat-icon"><i class="bi bi-shield-check"></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
   <div class="col-lg-8">
     <div class="card p-4 card-hover">
-      <div class="d-flex align-items-start justify-content-between">
-        <div>
-          <div class="text-muted small">欢迎回来</div>
-          <div class="fs-4 fw-semibold">{{ current_user.company_name or current_user.username }}</div>
-          <div class="text-muted small mt-1">按 GB 18218：自动计算 R 值，输出重大危险源判定与等级。</div>
-        </div>
-        <div class="badge rounded-pill badge-soft px-3 py-2">在线</div>
-      </div>
-      <div class="row g-3 mt-2">
-        <div class="col-md-6">
-          <div class="p-3 rounded-4 bg-light">
-            <div class="text-muted small">我的储存记录</div>
-            <div class="fs-3 fw-semibold">{{ storage_count }}</div>
-            <a class="btn btn-sm btn-outline-primary mt-2" href="{{ url_for('user.storage_list') }}">去录入</a>
-          </div>
-        </div>
-        <div class="col-md-6">
-          <div class="p-3 rounded-4 bg-light">
-            <div class="text-muted small">我的评估结果</div>
-            <div class="fs-3 fw-semibold">{{ results_count }}</div>
-            <a class="btn btn-sm btn-outline-primary mt-2" href="{{ url_for('user.results_list') }}">查看结果</a>
-          </div>
-        </div>
+      <div class="fw-semibold mb-2"><i class="bi bi-list-check me-1"></i>标准业务流程</div>
+      <div class="timeline-lite">
+        <div class="step"><span>1</span>维护企业基础档案与联系人信息</div>
+        <div class="step"><span>2</span>录入危险化学品储存信息（按企业多条记录）</div>
+        <div class="step"><span>3</span>发起自动辨识与等级评估，生成 R 值</div>
+        <div class="step"><span>4</span>查看审核状态与评估备注，导出 PDF 报告</div>
       </div>
     </div>
   </div>
   <div class="col-lg-4">
     <div class="card p-4 card-hover">
-      <div class="fw-semibold mb-2"><i class="bi bi-lightning-charge me-1"></i>快速开始</div>
-      <ol class="text-muted small mb-0">
-        <li>完善企业/个人基本信息</li>
-        <li>录入危险化学品储存信息</li>
-        <li>一键启动自动辨识与等级评估</li>
-        <li>导出 PDF 报告用于留存</li>
-      </ol>
-      <a class="btn btn-primary mt-3" href="{{ url_for('user.profile') }}">完善信息</a>
+      <div class="fw-semibold mb-2"><i class="bi bi-lightning-charge me-1"></i>快捷入口</div>
+      <div class="d-grid gap-2">
+        <a class="btn btn-outline-primary" href="{{ url_for('user.profile') }}">完善企业档案</a>
+        <a class="btn btn-outline-primary" href="{{ url_for('user.storage_list') }}">管理储存记录</a>
+        <a class="btn btn-outline-primary" href="{{ url_for('user.results_list') }}">查看评估结果</a>
+      </div>
     </div>
   </div>
 </div>
