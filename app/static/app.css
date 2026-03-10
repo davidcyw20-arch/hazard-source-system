@@ -268,6 +268,7 @@ footer{background: rgba(255,255,255,.55);backdrop-filter: blur(6px);border-top:1
   inset:auto -70px -70px auto;
   width:220px;height:220px;border-radius:999px;
   background:radial-gradient(circle at 30% 30%, rgba(47,91,231,.20), transparent 62%);
+  pointer-events:none;
 }
 
 .timeline-lite .step{
@@ -289,3 +290,10 @@ footer{background: rgba(255,255,255,.55);backdrop-filter: blur(6px);border-top:1
   color:#fff;
   background:linear-gradient(135deg, var(--primary-1), var(--primary-2));
 }
+
+
+/* admin page polish */
+.admin-section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.admin-kpis .card{height:100%;}
+.admin-kpis .label{font-size:.82rem;color:var(--muted);}
+.admin-kpis .value{font-size:1.25rem;font-weight:700;}
