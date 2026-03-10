@@ -174,6 +174,14 @@ python wsgi.py
 flask create-admin --username admin --password admin123
 ```
 
+可快速检查数据库是否正确连接：
+
+```powershell
+flask db-check
+```
+
+该命令会输出脱敏后的数据库连接串、`SELECT 1` 连通性结果，以及 `users/chemicals/evaluation_results` 三张关键表计数。
+
 ---
 
 ## 6. 备份/恢复格式
@@ -284,3 +292,16 @@ flask seed-reference-data
 ```
 
 补齐一批内置中文参考化学品数据。
+
+
+### 10.6 如何确认数据库是否真的连接成功
+
+执行：
+
+```powershell
+flask db-check
+```
+
+- 若显示 `OK: SELECT 1 succeeded.`，说明数据库网络与鉴权已通过。
+- 若继续显示关键表计数（如 `users=...`），说明业务表也可正常访问。
+- 若失败，请按报错检查 `.env` 中 `DATABASE_URL`、数据库账号权限、服务是否启动。

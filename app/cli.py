@@ -183,6 +183,36 @@ def register_cli(app: Flask) -> None:
         inserted = _ensure_extended_reference_chemicals()
         click.echo(f"OK: reference chemicals ready, inserted={inserted}.")
 
+
+
+    @app.cli.command("db-check")
+    def db_check():
+        """检查数据库连通性与关键表状态。"""
+        uri = str(app.config.get("SQLALCHEMY_DATABASE_URI", ""))
+        safe_uri = uri
+        if "://" in safe_uri and "@" in safe_uri:
+            head, tail = safe_uri.split("://", 1)
+            creds, host = tail.rsplit("@", 1)
+            if ":" in creds:
+                user = creds.split(":", 1)[0]
+                safe_uri = f"{head}://{user}:***@{host}"
+        click.echo(f"DB URI: {safe_uri}")
+
+        try:
+            db.session.execute(text("SELECT 1"))
+            db.session.commit()
+            click.echo("OK: SELECT 1 succeeded.")
+        except Exception as e:
+            db.session.rollback()
+            raise click.ClickException(f"数据库连接失败: {e}")
+
+        try:
+            users = User.query.count()
+            chems = Chemical.query.count()
+            evals = EvaluationResult.query.count()
+            click.echo(f"OK: users={users}, chemicals={chems}, evaluation_results={evals}")
+        except Exception as e:
+            raise click.ClickException(f"数据库已连接，但查询业务表失败: {e}")
     @app.cli.command("seed-gb18218-beta")
     def seed_gb18218_beta():
         """Seed GB 18218-2018 Table3/Table4 β and category thresholds, then fill missing chemicals.beta."""

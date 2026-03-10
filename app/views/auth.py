@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required, login_user, logout_user
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, OperationalError
 
 from ..extensions import db, login_manager
 from ..forms import LoginForm, RegisterForm
@@ -46,29 +46,35 @@ def login():
 def register():
     form = RegisterForm()
     if form.validate_on_submit():
-        username = (form.username.data or "").strip()
-        email = (form.email.data or "").strip() or None
-        if not username:
-            flash("用户名不能为空", "warning")
-            return render_template("auth/register.html", form=form)
-        if User.query.filter_by(username=username).first():
-            flash("用户名已存在", "warning")
-            return render_template("auth/register.html", form=form)
-        if email and User.query.filter_by(email=email).first():
-            flash("邮箱已被使用", "warning")
-            return render_template("auth/register.html", form=form)
-        user = User(username=username, email=email, role="user", is_active=True)
-        user.set_password(form.password.data)
-        db.session.add(user)
         try:
+            username = (form.username.data or "").strip()
+            email = (form.email.data or "").strip() or None
+            if not username:
+                flash("用户名不能为空", "warning")
+                return render_template("auth/register.html", form=form)
+            if User.query.filter_by(username=username).first():
+                flash("用户名已存在", "warning")
+                return render_template("auth/register.html", form=form)
+            if email and User.query.filter_by(email=email).first():
+                flash("邮箱已被使用", "warning")
+                return render_template("auth/register.html", form=form)
+
+            user = User(username=username, email=email, role="user", is_active=True)
+            user.set_password(form.password.data)
+            db.session.add(user)
             db.session.commit()
+            log_action("register", f"username={user.username}")
+            flash("注册成功，请登录", "success")
+            return redirect(url_for("auth.login"))
         except IntegrityError:
             db.session.rollback()
             flash("注册失败：用户名或邮箱已存在，请更换后重试", "warning")
             return render_template("auth/register.html", form=form)
-        log_action("register", f"username={user.username}")
-        flash("注册成功，请登录", "success")
-        return redirect(url_for("auth.login"))
+        except OperationalError as e:
+            db.session.rollback()
+            detail = str(getattr(e, "orig", e))
+            flash(f"注册失败：数据库连接异常（{detail[:80]}）", "danger")
+            return render_template("auth/register.html", form=form)
     return render_template("auth/register.html", form=form)
 
 
