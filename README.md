@@ -114,6 +114,29 @@
 - `app/`：业务代码（视图、模板、服务）
 - `instance/hazard_source_system.db`：默认 SQLite 数据库文件
 
+### 4.4 给“全新电脑（未安装环境）”的最短可运行路径
+
+可以运行，但**不是开箱即跑**：至少要先安装 Python。  
+推荐按下面最短路径：
+
+1. 安装 Python 3.11（安装时勾选 `Add Python to PATH`）。
+2. 下载/解压本项目代码，进入项目目录。
+3. 执行：
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+copy .env.example .env
+$env:FLASK_APP="wsgi.py"
+flask init-db
+python wsgi.py
+```
+
+4. 浏览器访问 `http://127.0.0.1:5000`，管理员默认账号：`admin / admin123`。
+
+> 说明：默认使用 SQLite，不需要单独安装 MySQL；因此对新电脑最友好。
+
 ---
 
 ## 5. 快速启动
@@ -358,3 +381,12 @@ flask db-check
 - 若显示 `OK: SELECT 1 succeeded.`，说明数据库网络与鉴权已通过。
 - 若继续显示关键表计数（如 `users=...`），说明业务表也可正常访问。
 - 若失败，请按报错检查 `.env` 中 `DATABASE_URL`、数据库账号权限、服务是否启动。
+
+
+### 12.7 如果朋友电脑没装环境，能否按 README 直接跑起来？
+
+可以，前提是先安装 Python（推荐 3.11）并按 README 的“4.4 最短可运行路径”执行。
+
+- 开发/演示默认走 SQLite，不要求先装 MySQL。
+- 只要 `python` 命令可用，按步骤执行 `venv -> pip install -> init-db -> wsgi.py` 就能启动。
+- 若 `pip install` 失败，通常是网络/代理问题，先配置镜像源后重试。
