@@ -1,4 +1,4 @@
-# 危险化学品重大危险源自动辨识与等级评估系统（Flask + MySQL）
+# 危险化学品重大危险源自动辨识与等级评估系统（Flask + SQLite/MySQL）
 
 本系统面向**监管管理端**与**企业用户端**，围绕《危险化学品重大危险源辨识》（GB 18218）构建完整闭环：
 **数据维护 → 储存信息录入 → 自动辨识 → 等级评估 → 审核统计 → 报告导出**。
@@ -80,9 +80,45 @@
 
 ---
 
-## 4. 快速启动
+## 4. 环境要求与安装前置
 
-### 4.1 安装依赖
+### 4.1 运行环境要求
+
+- **操作系统**：Windows / Linux / macOS（推荐 64 位）
+- **Python**：3.10+（建议 3.11）
+- **数据库**：
+  - 开发/演示：SQLite（默认，无需额外安装）
+  - 生产：MySQL 8.0+（或兼容版本）
+- **依赖包**：见 `requirements.txt`（Flask、SQLAlchemy、PyMySQL、openpyxl、xhtml2pdf、alembic 等）
+- **可选工具**：Git、PowerShell 或 Bash
+
+### 4.2 启动前完整条件（Checklist）
+
+在首次启动系统前，建议逐项确认：
+
+1. 已安装 Python 且 `python --version` 可用。
+2. 已创建并激活虚拟环境。
+3. 已执行 `pip install -r requirements.txt`。
+4. 已配置 `.env`（至少设置 `SECRET_KEY`，并确认 `DATABASE_URL`）。
+5. 已执行 `flask init-db` 完成建表与基础数据初始化。
+6. 如需标准全量参数，已准备并导入 GB 18218 SQL 文件。
+7. 若使用 MySQL，数据库服务已启动且账号有目标库权限。
+
+> 若任一条件未满足，系统可能出现“登录失败、数据库连接失败、无数据可评估”等问题。
+
+### 4.3 目录与关键文件说明
+
+- `wsgi.py`：应用入口（运行服务）
+- `.env`：环境变量配置
+- `config.py`：默认配置（SQLite/MySQL）
+- `app/`：业务代码（视图、模板、服务）
+- `instance/hazard_source_system.db`：默认 SQLite 数据库文件
+
+---
+
+## 5. 快速启动
+
+### 5.1 安装依赖
 
 ```powershell
 python -m venv .venv
@@ -92,7 +128,7 @@ pip install -r requirements.txt
 
 > 如果提示 `Activate.ps1` 无法识别，请确认在项目根目录执行 `\.venv\Scripts\Activate.ps1`。
 
-### 4.2 配置数据库（推荐先用 SQLite，再切 MySQL）
+### 5.2 配置数据库（推荐先用 SQLite，再切 MySQL）
 
 1. 复制环境变量模板：将 `.env.example` 复制为 `.env`
 2. **首次运行推荐直接使用默认 SQLite**（无需安装 MySQL）
@@ -112,7 +148,7 @@ DATABASE_URL=mysql+pymysql://your_user:your_password@127.0.0.1:3306/hazard_sourc
 SECRET_KEY=replace-this-with-a-random-string
 ```
 
-### 4.3 初始化数据库与基础数据
+### 5.3 初始化数据库与基础数据
 
 ```powershell
 $env:FLASK_APP="wsgi.py"
@@ -155,7 +191,7 @@ flask seed-reference-data
 
 > 说明：`import-all-sql` / `import-gb18218-sql` 已增加编码自动识别（UTF-8/UTF-8-SIG/GB18030/GBK），可缓解 SQL 文件中文名称乱码问题。
 
-### 4.4 运行系统
+### 5.4 运行系统
 
 ```powershell
 python wsgi.py
@@ -165,7 +201,7 @@ python wsgi.py
 
 ---
 
-## 5. 默认账号
+## 6. 默认账号
 
 - 管理员：`admin` / `admin123`
 - 如需重置：
@@ -184,7 +220,7 @@ flask db-check
 
 ---
 
-## 6. 备份/恢复格式
+## 7. 备份/恢复格式
 
 - 备份导出支持：
   - `backup.json`（用于恢复，推荐恢复源）
@@ -199,7 +235,7 @@ flask db-check
 
 ---
 
-## 7. API 概览
+## 8. API 概览
 
 系统提供 `/api/v1/*` 查询接口（需登录；部分接口仅管理员可用），覆盖：
 - 化学品信息
@@ -208,7 +244,7 @@ flask db-check
 
 ---
 
-## 8. 典型业务流程（推荐）
+## 9. 典型业务流程（推荐）
 
 1. 管理员维护 GB 18218 化学品与规则参数。
 2. 企业用户录入储存信息（建议按企业多化学品分条录入）。
@@ -218,16 +254,26 @@ flask db-check
 
 ---
 
-## 9. 注意事项
+## 10. 注意事项
 
 - 生产环境务必修改 `SECRET_KEY`、数据库账号密码。
 - 建议启用 HTTPS、数据库定时备份与审计日志保留策略。
 - 如果导入 GB 全量数据，请优先使用系统提供的“校验/去重/参数更新”流程。
 
 
-## 10. 常见问题排查
+## 11. 生产启动建议（简版）
 
-### 10.1 登录后报错：`OperationalError (1045) Access denied for user 'root'@'localhost'`
+- 使用 **MySQL + Gunicorn/uWSGI + Nginx** 方式部署。
+- 关闭调试模式，确保 `SECRET_KEY` 为高强度随机值。
+- 配置 HTTPS、访问日志、错误日志与备份策略。
+- 建议至少每日导出一次 JSON 备份，并定期校验恢复可用性。
+- 如果做内网部署，建议加上管理员访问白名单。
+
+---
+
+## 12. 常见问题排查
+
+### 12.1 登录后报错：`OperationalError (1045) Access denied for user 'root'@'localhost'`
 
 原因：`DATABASE_URL` 使用了错误的 MySQL 用户名/密码，或 MySQL 未授权该用户。
 
@@ -246,7 +292,7 @@ flask db-check
 > 从本版本开始，系统默认数据库已改为 SQLite，未配置 `DATABASE_URL` 时不会再默认连接 `root:root@localhost`。
 
 
-### 10.2 提示“数据库连接失败”但你已经改成 SQLite
+### 12.2 提示“数据库连接失败”但你已经改成 SQLite
 
 这通常是 SQLite 文件已创建但表结构尚未初始化（或首次启动尚未建表）。
 
@@ -257,7 +303,7 @@ flask db-check
 
 
 
-### 10.3 仍然提示数据库连接失败（常见隐藏原因）
+### 12.3 仍然提示数据库连接失败（常见隐藏原因）
 
 请重点检查 `.env` 中是否出现下面情况：
 - `DATABASE_URL=`（等号后是空值）
@@ -267,7 +313,7 @@ flask db-check
 
 
 
-### 10.4 导入 `GB18218_full_seed.sql` 报错：`SQLiteCompiler ... OnDuplicateClause`
+### 12.4 导入 `GB18218_full_seed.sql` 报错：`SQLiteCompiler ... OnDuplicateClause`
 
 这是旧版本仅按 MySQL `ON DUPLICATE KEY` 语法导入导致的兼容问题。
 
@@ -280,7 +326,7 @@ flask import-all-sql --root .
 当前版本已改为跨数据库 upsert（SQLite/MySQL 均可导入）。
 
 
-### 10.5 导入后中文名称乱码（如“姘箼鐑?....”）
+### 12.5 导入后中文名称乱码（如“姘箼鐑?....”）
 
 通常是 SQL 文件编码与读取编码不一致导致（常见于 GBK 导出的 SQL 被按 UTF-8 读取）。
 
@@ -301,7 +347,7 @@ flask seed-reference-data
 补齐一批内置中文参考化学品数据。
 
 
-### 10.6 如何确认数据库是否真的连接成功
+### 12.6 如何确认数据库是否真的连接成功
 
 执行：
 
