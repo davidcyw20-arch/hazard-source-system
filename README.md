@@ -1,14 +1,147 @@
-# 危险化学品重大危险源自动辨识与等级评估系统（Flask + MySQL）
+# 危险化学品重大危险源自动辨识与等级评估系统（Flask + SQLite/MySQL）
 
-## 功能概览
+本系统面向**监管管理端**与**企业用户端**，围绕《危险化学品重大危险源辨识》（GB 18218）构建完整闭环：
+**数据维护 → 储存信息录入 → 自动辨识 → 等级评估 → 审核统计 → 报告导出**。
 
-- 用户端：注册/登录、维护基本信息、录入企业储存信息、自动辨识与等级评估（R 值）、查看结果与计算依据、导出报告（HTML/PDF）、个人操作记录追溯
-- 管理端：管理员登录、用户管理（角色/启停/重置密码）、化学品基础信息与临界量维护、评估规则/等级区间维护、企业储存信息集中管理、评估结果审核、数据备份/恢复（JSON）
-- 接口：`/api/v1/*` 提供化学品/储存/结果查询（需要登录；部分仅管理员）
+---
 
-## 快速启动
+## 1. 核心功能（按角色）
 
-1) 安装依赖
+## （1）管理端（Admin）
+
+1. **管理员账号登录与后台安全管理**
+   - 支持管理员身份认证、角色鉴权、账号启停与密码重置。
+   - 审计日志记录关键管理操作，保障系统运行安全与可追溯。
+
+2. **危险化学品基础信息与临界量维护（GB 18218）**
+   - 统一维护化学品名称、类别、CAS、临界量、单位等标准参数。
+   - 支持 GB18218 全量 SQL 导入、校验、去重、参数更新，作为辨识计算标准数据源。
+
+3. **重大危险源判定与等级评估参数维护**
+   - 维护判定规则（如 `R = Σ(Qi/Q0i)`）及等级划分区间。
+   - 支持规则启停与版本切换，确保评估逻辑和法规标准一致。
+
+4. **企业储存信息集中管理**
+   - 对企业储存场所、储存方式、储存量等信息进行集中查询与维护。
+   - 支持按管理员视角统一查看全量储存台账，提升规范化管理效率。
+
+5. **评估结果审核与统计分析**
+   - 查看系统自动生成的辨识与等级评估结果，执行通过/驳回审核。
+   - 支持结果状态筛选、关键字检索、统计概览卡片（总数/待审/通过/重大危险源）。
+   - 支持审核备注记录，便于监管留痕与复核。
+
+6. **数据备份与恢复**
+   - 支持 JSON 备份恢复与 XLSX 导出。
+   - 用于系统迁移、归档留存和风险应急恢复。
+
+## （2）用户端（User）
+
+1. **注册与登录**
+   - 完成用户身份认证后进入业务功能界面。
+
+2. **危险化学品储存信息录入**
+   - 录入企业名称、化学品、储存量、储存场所（单元）及相关属性。
+   - 为系统自动辨识与评估提供基础数据。
+
+3. **自动辨识重大危险源**
+   - 基于录入储存信息，自动计算并判断是否构成重大危险源。
+
+4. **等级评估与 R 值计算**
+   - 自动计算 `R` 值，结合 GB 18218 参数输出等级判定（含兼容等级展示）。
+
+5. **结果查看与依据说明**
+   - 查看判定结论、计算依据、风险等级、审核状态与审核备注。
+   - 支持按企业名、审核状态快速筛选结果。
+
+6. **报告导出**
+   - 支持导出辨识与等级评估报告（HTML/PDF）。
+   - 便于企业安全管理、监管报送与应急资料留存。
+
+---
+
+## 2. 评估逻辑说明（示例实现）
+
+- 标准依据：GB 18218（当前内置 2018 版本参数）
+- 核心计算：`R = Σ(Qi / Q0i)`
+  - `Qi`：企业实际储存量
+  - `Q0i`：标准临界量
+- 判定规则：`R ≥ 1` 判定为重大危险源
+- 等级划分：依据管理端配置规则区间自动判定
+- 可扩展项：500m 暴露人口 `α` 参数参与计算
+
+---
+
+## 3. 界面与体验升级（本次完善）
+
+- 统一现代化视觉风格（渐变色、玻璃质感、卡片阴影、统一圆角组件）。
+- 管理端结果页面新增统计概览卡片与高级筛选（状态 + 关键字）。
+- 审核流程支持备注输入与结果页备注展示。
+- 用户端结果页面新增筛选区（状态 + 企业名称）与更清晰的信息层级。
+
+---
+
+## 4. 环境要求与安装前置
+
+### 4.1 运行环境要求
+
+- **操作系统**：Windows / Linux / macOS（推荐 64 位）
+- **Python**：3.10+（建议 3.11）
+- **数据库**：
+  - 开发/演示：SQLite（默认，无需额外安装）
+  - 生产：MySQL 8.0+（或兼容版本）
+- **依赖包**：见 `requirements.txt`（Flask、SQLAlchemy、PyMySQL、openpyxl、xhtml2pdf、alembic 等）
+- **可选工具**：Git、PowerShell 或 Bash
+
+### 4.2 启动前完整条件（Checklist）
+
+在首次启动系统前，建议逐项确认：
+
+1. 已安装 Python 且 `python --version` 可用。
+2. 已创建并激活虚拟环境。
+3. 已执行 `pip install -r requirements.txt`。
+4. 已配置 `.env`（至少设置 `SECRET_KEY`，并确认 `DATABASE_URL`）。
+5. 已执行 `flask init-db` 完成建表与基础数据初始化。
+6. 如需标准全量参数，已准备并导入 GB 18218 SQL 文件。
+7. 若使用 MySQL，数据库服务已启动且账号有目标库权限。
+
+> 若任一条件未满足，系统可能出现“登录失败、数据库连接失败、无数据可评估”等问题。
+
+### 4.3 目录与关键文件说明
+
+- `wsgi.py`：应用入口（运行服务）
+- `.env`：环境变量配置
+- `config.py`：默认配置（SQLite/MySQL）
+- `app/`：业务代码（视图、模板、服务）
+- `instance/hazard_source_system.db`：默认 SQLite 数据库文件
+
+### 4.4 给“全新电脑（未安装环境）”的最短可运行路径
+
+可以运行，但**不是开箱即跑**：至少要先安装 Python。  
+推荐按下面最短路径：
+
+1. 安装 Python 3.11（安装时勾选 `Add Python to PATH`）。
+2. 下载/解压本项目代码，进入项目目录。
+3. 执行：
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+copy .env.example .env
+$env:FLASK_APP="wsgi.py"
+flask init-db
+python wsgi.py
+```
+
+4. 浏览器访问 `http://127.0.0.1:5000`，管理员默认账号：`admin / admin123`。
+
+> 说明：默认使用 SQLite，不需要单独安装 MySQL；因此对新电脑最友好。
+
+---
+
+## 5. 快速启动
+
+### 5.1 安装依赖
 
 ```powershell
 python -m venv .venv
@@ -16,53 +149,244 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-如果你看到 `Activate.ps1` “无法识别”的报错，通常是少了前缀路径，请确保在项目目录执行 `.\.venv\Scripts\Activate.ps1`（而不是只输入 `Activate.ps1`）。
+> 如果提示 `Activate.ps1` 无法识别，请确认在项目根目录执行 `\.venv\Scripts\Activate.ps1`。
 
-2) 配置数据库（MySQL）
+### 5.2 配置数据库（推荐先用 SQLite，再切 MySQL）
 
-- 新建数据库：`hazard_source_system`（字符集建议 `utf8mb4`）
-- 复制环境变量：将 `.env.example` 复制为 `.env` 并修改 `DATABASE_URL`
+1. 复制环境变量模板：将 `.env.example` 复制为 `.env`
+2. **首次运行推荐直接使用默认 SQLite**（无需安装 MySQL）
+3. 需要接入 MySQL 时，再设置 `DATABASE_URL`
 
-3) 初始化数据（建表 + 示例数据 + 默认管理员）
+SQLite 示例：
+
+```env
+DATABASE_URL=sqlite:///instance/hazard_source_system.db
+SECRET_KEY=replace-this-with-a-random-string
+```
+
+MySQL 示例（请替换真实账号密码）：
+
+```env
+DATABASE_URL=mysql+pymysql://your_user:your_password@127.0.0.1:3306/hazard_source_system?charset=utf8mb4
+SECRET_KEY=replace-this-with-a-random-string
+```
+
+### 5.3 初始化数据库与基础数据
 
 ```powershell
 $env:FLASK_APP="wsgi.py"
 flask init-db
 ```
 
-已有数据库升级（不丢数据）：使用 Alembic 执行迁移（会新增字段与参数表）
+#### 一键导入你提到的 4 个 SQL 文件
+
+项目已内置命令，按以下顺序自动导入：
+- `db_schema.sql`
+- `GB18218_full_seed.sql`
+- `GB18218_full_seed_fixed.sql`
+- `db_init_gb18218.sql`
+
+执行命令：
 
 ```powershell
-pip install -r requirements.txt
+flask import-all-sql --root .
+```
+
+> 如果你的项目在 `E:\hazard-source-system`，请先 `cd E:\hazard-source-system` 再执行上述命令。
+
+已有库升级（保留数据）：
+
+```powershell
 .\.venv\Scripts\python -m flask db-upgrade
 ```
 
-可选：导入更多预置示例（演示用的用户/储存记录/评估结果）
+可选：导入演示数据
 
 ```powershell
 flask seed-demo
 ```
 
-## 备份导出格式
+可选：仅补齐内置危化品参考数据（幂等，可反复执行）
 
-- 管理端“备份/恢复”支持导出 `backup.xlsx`（便于查看）和 `backup.json`（用于恢复）。
+```powershell
+flask seed-reference-data
+```
 
-4) 运行
+> 说明：`import-all-sql` / `import-gb18218-sql` 已增加编码自动识别（UTF-8/UTF-8-SIG/GB18030/GBK），可缓解 SQL 文件中文名称乱码问题。
+
+### 5.4 运行系统
 
 ```powershell
 python wsgi.py
 ```
 
-浏览器打开：`http://127.0.0.1:5000`
+访问地址：`http://127.0.0.1:5000`
 
-## 默认账号
+---
+
+## 6. 默认账号
 
 - 管理员：`admin` / `admin123`
-- 可重置：`flask create-admin --username admin --password admin123`
+- 如需重置：
 
-## 评估逻辑（示例实现）
+```powershell
+flask create-admin --username admin --password admin123
+```
 
-- 标准依据：GB 18218（示例）
-- 计算：`R = Σ(Qi / Q0i)`
-- 判定：`R ≥ 1` 视为重大危险源
-- 等级：按管理端“评估规则”配置区间自动划分（内置常用区间示例，可修改）
+可快速检查数据库是否正确连接：
+
+```powershell
+flask db-check
+```
+
+该命令会输出脱敏后的数据库连接串、`SELECT 1` 连通性结果，以及 `users/chemicals/evaluation_results` 三张关键表计数。
+
+---
+
+## 7. 备份/恢复格式
+
+- 备份导出支持：
+  - `backup.json`（用于恢复，推荐恢复源）
+  - `backup.xlsx`（用于查阅与审计归档）
+    - `00_导出说明`：导出用途说明
+    - `01_业务概览`：核心统计（用户、化学品、储存、评估、审核状态）
+    - `02_用户清单`：用户账号明细（密码脱敏）
+    - `03_化学品清单`：危化品参数明细
+    - `04_储存记录`：企业储存数据明细
+    - `05_评估结果`：评估与审核结果明细
+    - `RAW_*`：原始表快照（技术排查用）
+
+---
+
+## 8. API 概览
+
+系统提供 `/api/v1/*` 查询接口（需登录；部分接口仅管理员可用），覆盖：
+- 化学品信息
+- 储存记录
+- 评估结果
+
+---
+
+## 9. 典型业务流程（推荐）
+
+1. 管理员维护 GB 18218 化学品与规则参数。
+2. 企业用户录入储存信息（建议按企业多化学品分条录入）。
+3. 用户触发自动辨识与评估，生成 R 值与等级。
+4. 管理员审核结果并给出备注。
+5. 企业导出 PDF 报告用于归档与监管报送。
+
+---
+
+## 10. 注意事项
+
+- 生产环境务必修改 `SECRET_KEY`、数据库账号密码。
+- 建议启用 HTTPS、数据库定时备份与审计日志保留策略。
+- 如果导入 GB 全量数据，请优先使用系统提供的“校验/去重/参数更新”流程。
+
+
+## 11. 生产启动建议（简版）
+
+- 使用 **MySQL + Gunicorn/uWSGI + Nginx** 方式部署。
+- 关闭调试模式，确保 `SECRET_KEY` 为高强度随机值。
+- 配置 HTTPS、访问日志、错误日志与备份策略。
+- 建议至少每日导出一次 JSON 备份，并定期校验恢复可用性。
+- 如果做内网部署，建议加上管理员访问白名单。
+
+---
+
+## 12. 常见问题排查
+
+### 12.1 登录后报错：`OperationalError (1045) Access denied for user 'root'@'localhost'`
+
+原因：`DATABASE_URL` 使用了错误的 MySQL 用户名/密码，或 MySQL 未授权该用户。
+
+处理方式（任选其一）：
+
+1. **最快方案：切换到 SQLite（推荐开发环境）**
+   - 在 `.env` 中设置：
+   - `DATABASE_URL=sqlite:///instance/hazard_source_system.db`
+   - 重新执行 `flask init-db` 后启动系统。
+
+2. **继续使用 MySQL**
+   - 确认数据库已创建：`hazard_source_system`
+   - 将 `.env` 中的 `DATABASE_URL` 改为真实账号密码
+   - 确认该用户有目标库权限（`SELECT/INSERT/UPDATE/DELETE/CREATE/ALTER`）
+
+> 从本版本开始，系统默认数据库已改为 SQLite，未配置 `DATABASE_URL` 时不会再默认连接 `root:root@localhost`。
+
+
+### 12.2 提示“数据库连接失败”但你已经改成 SQLite
+
+这通常是 SQLite 文件已创建但表结构尚未初始化（或首次启动尚未建表）。
+
+建议顺序：
+1. 执行 `flask init-db` 初始化默认数据（管理员、规则、示例化学品）。
+2. 若仅做快速本地体验，也可直接重启应用（系统会在 SQLite 下自动建表）。
+3. 然后使用管理员账号登录：`admin / admin123`。
+
+
+
+### 12.3 仍然提示数据库连接失败（常见隐藏原因）
+
+请重点检查 `.env` 中是否出现下面情况：
+- `DATABASE_URL=`（等号后是空值）
+- `DATABASE_URL` 格式拼写错误（例如少了 `sqlite:///` 或 `mysql+pymysql://`）
+
+建议直接复制 `.env.example` 中任一完整示例再修改。
+
+
+
+### 12.4 导入 `GB18218_full_seed.sql` 报错：`SQLiteCompiler ... OnDuplicateClause`
+
+这是旧版本仅按 MySQL `ON DUPLICATE KEY` 语法导入导致的兼容问题。
+
+请升级到当前版本后重新执行：
+
+```powershell
+flask import-all-sql --root .
+```
+
+当前版本已改为跨数据库 upsert（SQLite/MySQL 均可导入）。
+
+
+### 12.5 导入后中文名称乱码（如“姘箼鐑?....”）
+
+通常是 SQL 文件编码与读取编码不一致导致（常见于 GBK 导出的 SQL 被按 UTF-8 读取）。
+
+当前版本已在导入命令中增加自动编码识别（UTF-8 / UTF-8-SIG / GB18030 / GBK）：
+
+```powershell
+flask import-gb18218-sql --file .\GB18218_full_seed.sql
+# 或
+flask import-all-sql --root .
+```
+
+如果历史上已导入了乱码数据，建议先清理旧库后重新导入，或改用：
+
+```powershell
+flask seed-reference-data
+```
+
+补齐一批内置中文参考化学品数据。
+
+
+### 12.6 如何确认数据库是否真的连接成功
+
+执行：
+
+```powershell
+flask db-check
+```
+
+- 若显示 `OK: SELECT 1 succeeded.`，说明数据库网络与鉴权已通过。
+- 若继续显示关键表计数（如 `users=...`），说明业务表也可正常访问。
+- 若失败，请按报错检查 `.env` 中 `DATABASE_URL`、数据库账号权限、服务是否启动。
+
+
+### 12.7 如果朋友电脑没装环境，能否按 README 直接跑起来？
+
+可以，前提是先安装 Python（推荐 3.11）并按 README 的“4.4 最短可运行路径”执行。
+
+- 开发/演示默认走 SQLite，不要求先装 MySQL。
+- 只要 `python` 命令可用，按步骤执行 `venv -> pip install -> init-db -> wsgi.py` 就能启动。
+- 若 `pip install` 失败，通常是网络/代理问题，先配置镜像源后重试。

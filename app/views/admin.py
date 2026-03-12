@@ -454,11 +454,24 @@ def storage_delete(record_id: int):
 @admin_required
 def results_all():
     status = request.args.get("status", "").strip()
+    q = request.args.get("q", "").strip()
     query = EvaluationResult.query
     if status:
         query = query.filter_by(status=status)
+    if q:
+        query = query.join(User, EvaluationResult.owner_id == User.id).filter(
+            (EvaluationResult.enterprise_name.like(f"%{q}%")) | (User.username.like(f"%{q}%"))
+        )
     results = query.order_by(EvaluationResult.created_at.desc()).limit(500).all()
-    return render_template("admin/results_all.html", results=results, status=status)
+    stats = {
+        "total": len(results),
+        "pending": sum(1 for r in results if r.status == "pending"),
+        "approved": sum(1 for r in results if r.status == "approved"),
+        "major": sum(1 for r in results if r.is_major_hazard),
+    }
+    return render_template(
+        "admin/results_all.html", results=results, status=status, q=q, stats=stats
+    )
 
 
 @bp.post("/results/<int:result_id>/review")

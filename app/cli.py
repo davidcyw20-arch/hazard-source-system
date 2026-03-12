@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 import click
+from sqlalchemy import text
 from flask import Flask
 
 from .extensions import db
@@ -26,6 +27,30 @@ from .services.gb18218_import import import_gb18218_full_seed_sql
 from .services.gb18218_beta_seed import seed_gb18218_beta_and_thresholds
 
 
+def _read_sql_text_with_fallback(path: Path) -> str:
+    """Read SQL text with encoding fallback for common CN exports (UTF-8/GBK)."""
+    raw = path.read_bytes()
+    candidates = ["utf-8", "utf-8-sig", "gb18030", "gbk"]
+    best_text = None
+    best_bad = 10**9
+
+    for enc in candidates:
+        try:
+            txt = raw.decode(enc)
+        except UnicodeDecodeError:
+            continue
+        bad = txt.count("�")
+        if bad < best_bad:
+            best_bad = bad
+            best_text = txt
+            if bad == 0:
+                break
+
+    if best_text is not None:
+        return best_text
+    return raw.decode("utf-8", errors="replace")
+
+
 def register_cli(app: Flask) -> None:
     @app.cli.command("init-db")
     def init_db_command():
@@ -34,6 +59,7 @@ def register_cli(app: Flask) -> None:
         _ensure_default_rules()
         _ensure_default_admin()
         _ensure_demo_chemicals()
+        _ensure_extended_reference_chemicals()
         _ensure_gb18218_params()
         click.echo("OK: database initialized.")
 
@@ -84,6 +110,7 @@ def register_cli(app: Flask) -> None:
         _ensure_default_rules()
         _ensure_default_admin()
         _ensure_demo_chemicals()
+        _ensure_extended_reference_chemicals()
         _seed_more_chemicals()
         _ensure_gb18218_params()
         _seed_demo_users()
@@ -96,8 +123,7 @@ def register_cli(app: Flask) -> None:
     def import_gb18218_sql(file_path: str, replace_rules: bool):
         """Import GB18218_full_seed.sql into current schema (chemicals + parameter tables)."""
         db.create_all()
-        with open(file_path, "r", encoding="utf-8", errors="replace") as f:
-            text = f.read()
+        text = _read_sql_text_with_fallback(Path(file_path))
         summary = import_gb18218_full_seed_sql(text, replace_rules=replace_rules)
         click.echo(
             f"OK: imported chemicals={summary.chemicals}, alpha_rules={summary.alpha_rules}, "
@@ -105,6 +131,88 @@ def register_cli(app: Flask) -> None:
             f"category_betas={summary.category_betas}"
         )
 
+
+
+    @app.cli.command("import-all-sql")
+    @click.option("--root", "root_dir", default=".", show_default=True, help="目录根路径")
+    def import_all_sql(root_dir: str):
+        """一键导入项目根目录下 4 个 SQL 文件（按顺序 best-effort）。"""
+        root = Path(root_dir).resolve()
+        files = [
+            root / "db_schema.sql",
+            root / "GB18218_full_seed.sql",
+            root / "GB18218_full_seed_fixed.sql",
+            root / "db_init_gb18218.sql",
+        ]
+
+        db.create_all()
+        click.echo(f"[1/4] schema ready: {root}")
+
+        schema_report = _exec_sql_file_best_effort(files[0])
+        click.echo(f"[2/4] db_schema.sql -> executed={schema_report['executed']} skipped={schema_report['skipped']} errors={schema_report['errors']}")
+
+        for idx, fp in enumerate(files[1:3], start=3):
+            if not fp.exists():
+                click.echo(f"[{idx}/4] {fp.name} not found, skip")
+                continue
+            txt = _read_sql_text_with_fallback(fp)
+            try:
+                summary = import_gb18218_full_seed_sql(txt, replace_rules=True)
+                db.session.commit()
+                click.echo(
+                    f"[{idx}/4] {fp.name} -> chemicals={summary.chemicals}, alpha={summary.alpha_rules}, level={summary.level_rules}, cat_q={summary.category_thresholds}, cat_beta={summary.category_betas}"
+                )
+            except Exception as e:
+                db.session.rollback()
+                click.echo(f"[{idx}/4] {fp.name} import failed: {e}")
+
+        init_report = _exec_sql_file_best_effort(files[3])
+        click.echo(f"[4/4] db_init_gb18218.sql -> executed={init_report['executed']} skipped={init_report['skipped']} errors={init_report['errors']}")
+
+        _ensure_default_rules()
+        _ensure_default_admin()
+        _ensure_demo_chemicals()
+        _ensure_extended_reference_chemicals()
+        _ensure_gb18218_params()
+        click.echo("OK: import-all-sql done.")
+
+    @app.cli.command("seed-reference-data")
+    def seed_reference_data():
+        """补齐一批常见危化品参考数据（幂等，可重复执行）。"""
+        db.create_all()
+        inserted = _ensure_extended_reference_chemicals()
+        click.echo(f"OK: reference chemicals ready, inserted={inserted}.")
+
+
+
+    @app.cli.command("db-check")
+    def db_check():
+        """检查数据库连通性与关键表状态。"""
+        uri = str(app.config.get("SQLALCHEMY_DATABASE_URI", ""))
+        safe_uri = uri
+        if "://" in safe_uri and "@" in safe_uri:
+            head, tail = safe_uri.split("://", 1)
+            creds, host = tail.rsplit("@", 1)
+            if ":" in creds:
+                user = creds.split(":", 1)[0]
+                safe_uri = f"{head}://{user}:***@{host}"
+        click.echo(f"DB URI: {safe_uri}")
+
+        try:
+            db.session.execute(text("SELECT 1"))
+            db.session.commit()
+            click.echo("OK: SELECT 1 succeeded.")
+        except Exception as e:
+            db.session.rollback()
+            raise click.ClickException(f"数据库连接失败: {e}")
+
+        try:
+            users = User.query.count()
+            chems = Chemical.query.count()
+            evals = EvaluationResult.query.count()
+            click.echo(f"OK: users={users}, chemicals={chems}, evaluation_results={evals}")
+        except Exception as e:
+            raise click.ClickException(f"数据库已连接，但查询业务表失败: {e}")
     @app.cli.command("seed-gb18218-beta")
     def seed_gb18218_beta():
         """Seed GB 18218-2018 Table3/Table4 β and category thresholds, then fill missing chemicals.beta."""
@@ -120,6 +228,38 @@ def register_cli(app: Flask) -> None:
         )
 
 
+
+
+def _exec_sql_file_best_effort(path: Path) -> dict[str, int]:
+    if not path.exists():
+        return {"executed": 0, "skipped": 1, "errors": 0}
+
+    text_sql = path.read_text(encoding="utf-8", errors="replace")
+    statements = [seg.strip() for seg in text_sql.split(";") if seg.strip()]
+    executed = 0
+    skipped = 0
+    errors = 0
+
+    for stmt in statements:
+        up = stmt.upper()
+        # Skip directives that are MySQL session-level and often unsupported cross-db.
+        if up.startswith("SET ") or up.startswith("USE "):
+            skipped += 1
+            continue
+        try:
+            db.session.execute(text(stmt))
+            executed += 1
+        except Exception:
+            db.session.rollback()
+            errors += 1
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        errors += 1
+
+    return {"executed": executed, "skipped": skipped, "errors": errors}
 def _ensure_default_rules() -> None:
     existing = RuleSet.query.filter_by(is_active=True).first()
     if existing:
@@ -387,6 +527,69 @@ def _seed_more_chemicals() -> None:
     if to_add:
         db.session.add_all(to_add)
         db.session.commit()
+
+
+def _ensure_extended_reference_chemicals() -> int:
+    """More complete baseline chemical dataset for first-run and demos."""
+    rows = [
+        ("氯乙烯", "易燃气体", "75-01-4", 50.0, None),
+        ("氯化氢（无水）", "毒性气体", "7647-01-0", 20.0, 3.0),
+        ("正己烷", "易燃液体", "110-54-3", 500.0, None),
+        ("汽油", "易燃液体", "86290-81-5", 200.0, None),
+        ("溴", "毒性液体", "7726-95-6", 20.0, None),
+        ("甲苯二异氰酸酯(TDI)", "毒性液体", "26471-62-5", 100.0, None),
+        ("过氧化钾", "氧化性固体", "17014-71-0", 20.0, None),
+        ("液氨", "毒性气体", "7664-41-7", 10.0, 2.0),
+        ("液氯", "毒性气体", "7782-50-5", 10.0, 4.0),
+        ("二氧化氮", "毒性气体", "10102-44-0", 1.0, None),
+        ("二氧化硫", "毒性气体", "7446-09-5", 20.0, None),
+        ("二氟化氧", "氧化性气体", "7783-41-7", 1.0, None),
+        ("二硫化碳", "易燃液体", "75-15-0", 50.0, None),
+        ("丙酮", "易燃液体", "67-64-1", 500.0, None),
+        ("乙烯", "易燃气体", "74-85-1", 50.0, None),
+        ("乙酸乙酯", "易燃液体", "141-78-6", 500.0, None),
+        ("乙醇", "易燃液体", "64-17-5", 500.0, None),
+        ("乙醚", "易燃液体", "60-29-7", 10.0, None),
+        ("硝酸", "氧化性液体", "7697-37-2", 100.0, None),
+        ("碳化钙", "遇湿易燃物", "75-20-7", 100.0, None),
+        ("碳酰氯（光气）", "毒性气体", "75-44-5", 0.3, 20.0),
+        ("发烟硫酸", "腐蚀性液体", "52583-42-3", 20.0, None),
+        ("硫酸二甲酯", "毒性液体", "77-78-1", 1.0, None),
+        ("煤气", "易燃气体", None, 20.0, None),
+        ("环己烷", "易燃液体", "110-82-7", 500.0, None),
+        ("环氧乙烷", "易燃气体", "75-21-8", 10.0, None),
+        ("甲醛（含量>90%）", "毒性液体", "50-00-0", 5.0, None),
+        ("甲苯", "易燃液体", "108-88-3", 500.0, None),
+        ("白磷", "自燃固体", "12185-10-3", 50.0, None),
+        ("砷化氢", "毒性气体", "7784-42-1", 1.0, None),
+        ("苯", "易燃液体", "71-43-2", 50.0, None),
+    ]
+    existing = {
+        (n, c)
+        for n, c in db.session.query(Chemical.name, Chemical.cas_no).all()
+    }
+    add_count = 0
+    for name, category, cas, critical, beta in rows:
+        key = (name, cas)
+        if key in existing:
+            continue
+        db.session.add(
+            Chemical(
+                gb_version=GB_18218_2018,
+                name=name,
+                category=category,
+                cas_no=cas,
+                critical_quantity=float(critical),
+                unit="t",
+                source_standard=f"{GB_18218_2018}（内置补充数据）",
+                beta=beta,
+                beta_source=f"{GB_18218_2018} 表3" if beta is not None else None,
+            )
+        )
+        add_count += 1
+    if add_count:
+        db.session.commit()
+    return add_count
 
 
 def _seed_demo_users() -> None:

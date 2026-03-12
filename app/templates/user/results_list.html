@@ -1,12 +1,19 @@
 {% extends "layout.html" %}
 {% block title %}评估结果{% endblock %}
 {% block content %}
+<div class="user-shell-nav mb-3">
+  <a class="item" href="{{ url_for('user.dashboard') }}"><i class="bi bi-grid-1x2 me-1"></i>总览</a>
+  <a class="item" href="{{ url_for('user.storage_list') }}"><i class="bi bi-box-seam me-1"></i>储存信息</a>
+  <a class="item active" href="{{ url_for('user.results_list') }}"><i class="bi bi-clipboard-data me-1"></i>评估结果</a>
+  <a class="item" href="{{ url_for('user.profile') }}"><i class="bi bi-building me-1"></i>企业档案</a>
+</div>
+
 <div class="page-header">
   <div class="title">
     <div class="icon-circle bg-primary text-white"><i class="bi bi-clipboard-data"></i></div>
     <div>
       <h1>重大危险源辨识与等级评估结果</h1>
-      <p>包含判定结论、计算依据与风险等级说明，可导出 PDF 报告</p>
+      <p>查看 R 值、重大危险源判定、GB 等级及审核状态，支持一键导出 PDF</p>
     </div>
   </div>
   <div class="actions">
@@ -14,8 +21,37 @@
   </div>
 </div>
 
+{% set pending_count = results|selectattr('status', 'equalto', 'pending')|list|length %}
+{% set approved_count = results|selectattr('status', 'equalto', 'approved')|list|length %}
+{% set major_count = results|selectattr('is_major_hazard')|list|length %}
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="card p-3"><div class="small text-muted">结果总数</div><div class="fs-5 fw-semibold">{{ results|length }}</div></div></div>
+  <div class="col-md-3"><div class="card p-3"><div class="small text-muted">待审核</div><div class="fs-5 fw-semibold">{{ pending_count }}</div></div></div>
+  <div class="col-md-3"><div class="card p-3"><div class="small text-muted">已通过</div><div class="fs-5 fw-semibold">{{ approved_count }}</div></div></div>
+  <div class="col-md-3"><div class="card p-3"><div class="small text-muted">重大危险源</div><div class="fs-5 fw-semibold">{{ major_count }}</div></div></div>
+</div>
+
+<div class="card p-3 mb-3 card-hover">
+  <form class="row g-2" method="get">
+    <div class="col-md-3">
+      <select class="form-select" name="status">
+        <option value="" {% if not status %}selected{% endif %}>全部审核状态</option>
+        <option value="pending" {% if status=='pending' %}selected{% endif %}>待审核</option>
+        <option value="approved" {% if status=='approved' %}selected{% endif %}>已通过</option>
+        <option value="rejected" {% if status=='rejected' %}selected{% endif %}>已驳回</option>
+      </select>
+    </div>
+    <div class="col-md-5">
+      <input class="form-control" type="text" name="enterprise" value="{{ enterprise }}" placeholder="输入企业名称查询" />
+    </div>
+    <div class="col-md-2">
+      <button class="btn btn-primary w-100" type="submit"><i class="bi bi-search"></i> 查询</button>
+    </div>
+  </form>
+</div>
+
 {% if not results %}
-  <div class="card p-4 text-center text-muted">暂无结果。</div>
+  <div class="card p-5 text-center text-muted">暂无结果，请先从储存信息页面发起自动辨识与评估。</div>
 {% else %}
   <div class="card p-3 table-card">
     <div class="table-responsive">
@@ -34,7 +70,7 @@
           {% for r in results %}
             <tr>
               <td>{{ r.enterprise_name }}</td>
-              <td class="text-end">{{ "%.4f"|format(r.r_value) }}</td>
+              <td class="text-end fw-semibold">{{ "%.4f"|format(r.r_value) }}</td>
               <td>
                 {% if r.is_major_hazard %}
                   <span class="badge text-bg-danger">重大危险源</span>
@@ -51,6 +87,7 @@
                 {% else %}
                   <span class="badge text-bg-danger">已驳回</span>
                 {% endif %}
+                {% if r.review_remark %}<div class="small text-muted mt-1">备注：{{ r.review_remark }}</div>{% endif %}
               </td>
               <td class="text-end">
                 <a class="btn btn-sm btn-outline-primary" href="{{ url_for('user.results_detail', result_id=r.id) }}">详情</a>

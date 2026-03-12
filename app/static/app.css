@@ -224,3 +224,76 @@ body{
   background: radial-gradient(circle at 40% 40%, rgba(34,197,94,.18), transparent 62%);
   pointer-events:none;
 }
+
+
+/* premium polish */
+main.container-xl{position:relative;}
+footer{background: rgba(255,255,255,.55);backdrop-filter: blur(6px);border-top:1px solid rgba(15,23,42,.06);}
+.card{backdrop-filter: blur(2px);}
+.table-card{border:1px solid rgba(15,23,42,.06);border-radius:16px;background:rgba(255,255,255,.95);}
+.review-remark{min-width:180px;max-width:220px;display:inline-block;}
+.navbar{border-bottom:1px solid rgba(255,255,255,.16);}
+
+/* user system shell */
+.user-shell-nav{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.user-shell-nav .item{
+  text-decoration:none;
+  padding:.5rem .9rem;
+  border-radius:999px;
+  border:1px solid rgba(47,91,231,.16);
+  color:#1e3a8a;
+  background:rgba(255,255,255,.72);
+  font-size:.9rem;
+}
+.user-shell-nav .item:hover{background:rgba(47,91,231,.08);}
+.user-shell-nav .item.active{
+  background:linear-gradient(135deg, var(--primary-1), var(--primary-2));
+  color:#fff;
+  border-color:transparent;
+  box-shadow:0 8px 20px rgba(47,91,231,.25);
+}
+
+.hero-panel{
+  position:relative;
+  overflow:hidden;
+  border:1px solid rgba(47,91,231,.14);
+}
+.hero-panel::after{
+  content:"";
+  position:absolute;
+  inset:auto -70px -70px auto;
+  width:220px;height:220px;border-radius:999px;
+  background:radial-gradient(circle at 30% 30%, rgba(47,91,231,.20), transparent 62%);
+  pointer-events:none;
+}
+
+.timeline-lite .step{
+  position:relative;
+  padding:.6rem .8rem .6rem 2.4rem;
+  background:rgba(248,250,252,.95);
+  border:1px solid rgba(15,23,42,.06);
+  border-radius:12px;
+  margin-bottom:.55rem;
+}
+.timeline-lite .step:last-child{margin-bottom:0;}
+.timeline-lite .step span{
+  position:absolute;
+  left:.6rem; top:.55rem;
+  width:1.3rem; height:1.3rem;
+  border-radius:999px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.72rem;
+  color:#fff;
+  background:linear-gradient(135deg, var(--primary-1), var(--primary-2));
+}
+
+
+/* admin page polish */
+.admin-section-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.admin-kpis .card{height:100%;}
+.admin-kpis .label{font-size:.82rem;color:var(--muted);}
+.admin-kpis .value{font-size:1.25rem;font-weight:700;}

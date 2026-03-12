@@ -1,26 +1,44 @@
 {% extends "layout.html" %}
 {% block title %}储存信息{% endblock %}
 {% block content %}
+<div class="user-shell-nav mb-3">
+  <a class="item" href="{{ url_for('user.dashboard') }}"><i class="bi bi-grid-1x2 me-1"></i>总览</a>
+  <a class="item active" href="{{ url_for('user.storage_list') }}"><i class="bi bi-box-seam me-1"></i>储存信息</a>
+  <a class="item" href="{{ url_for('user.results_list') }}"><i class="bi bi-clipboard-data me-1"></i>评估结果</a>
+  <a class="item" href="{{ url_for('user.profile') }}"><i class="bi bi-building me-1"></i>企业档案</a>
+</div>
+
 <div class="page-header">
   <div class="title">
     <div class="icon-circle bg-primary text-white"><i class="bi bi-box-seam"></i></div>
     <div>
       <h1>企业危险化学品储存信息</h1>
-      <p>按企业分组，录入后可一键生成辨识与等级评估结果</p>
+      <p>统一维护储存场所、方式、数量口径与临界量比值，形成可评估的数据底座</p>
     </div>
   </div>
   <div class="actions">
-    <a class="btn btn-primary" href="{{ url_for('user.storage_new') }}"><i class="bi bi-plus-lg me-1"></i>新增</a>
+    <a class="btn btn-primary" href="{{ url_for('user.storage_new') }}"><i class="bi bi-plus-lg me-1"></i>新增记录</a>
   </div>
 </div>
 
+{% set enterprise_count = records|map(attribute='enterprise_name')|unique|list|length if records else 0 %}
+<div class="row g-3 mb-3">
+  <div class="col-md-4"><div class="card p-3"><div class="small text-muted">记录总数</div><div class="fs-5 fw-semibold">{{ records|length }}</div></div></div>
+  <div class="col-md-4"><div class="card p-3"><div class="small text-muted">企业数量</div><div class="fs-5 fw-semibold">{{ enterprise_count }}</div></div></div>
+  <div class="col-md-4"><div class="card p-3"><div class="small text-muted">评估准备状态</div><div class="fs-5 fw-semibold">{{ '可评估' if records else '待录入' }}</div></div></div>
+</div>
+
 {% if not records %}
-  <div class="card p-4 text-center text-muted">暂无记录，点击右上角“新增”开始录入。</div>
+  <div class="card p-5 text-center text-muted">
+    <div class="fs-5 mb-2">暂无储存记录</div>
+    <div class="small mb-3">建议先录入企业危化品储存信息，再生成辨识与评估结果。</div>
+    <a class="btn btn-primary" href="{{ url_for('user.storage_new') }}">立即新增</a>
+  </div>
 {% else %}
   <div class="row g-3">
     <div class="col-lg-4">
-      <div class="card p-3 card-hover">
-        <div class="d-flex align-items-center justify-content-between">
+      <div class="card p-3 card-hover sticky-top" style="top:88px;">
+        <div class="d-flex align-items-center justify-content-between mb-2">
           <div class="fw-semibold">按企业生成评估</div>
           <span class="badge badge-soft">R = Σ(Qi/Q0i)</span>
         </div>
@@ -31,17 +49,14 @@
               <option value="{{ grp.grouper }}">{{ grp.grouper }}（{{ grp.list|length }} 条）</option>
             {% endfor %}
           </select>
-          <div class="row g-2 mt-2">
-            <div class="col-12">
-              <label class="form-label small text-muted mb-1">500m 范围暴露人口（用于 GB 18218 α）</label>
-              <input class="form-control" type="number" min="0" step="1" name="exposure_people_500m" value="0" />
-            </div>
+          <div class="mt-2">
+            <label class="form-label small text-muted mb-1">500m 暴露人口（用于 α）</label>
+            <input class="form-control" type="number" min="0" step="1" name="exposure_people_500m" value="0" />
           </div>
-          <button class="btn btn-success w-100 mt-2" type="submit">
+          <button class="btn btn-success w-100 mt-3" type="submit">
             <i class="bi bi-calculator me-1"></i>自动辨识与评估
           </button>
         </form>
-        <div class="text-muted small mt-2">提示：建议同一企业的多种化学品分条录入，系统自动汇总计算。</div>
       </div>
     </div>
     <div class="col-lg-8">
@@ -67,7 +82,7 @@
                   <td>{{ r.chemical.name }}</td>
                   <td class="text-end">{{ "%.3f"|format(r.amount) }} {{ r.unit }}</td>
                   <td class="text-end">{{ "%.3f"|format(r.chemical.critical_quantity) }} {{ r.chemical.unit }}</td>
-                  <td class="text-end">{{ "%.4f"|format(r.amount / r.chemical.critical_quantity) }}</td>
+                  <td class="text-end fw-semibold">{{ "%.4f"|format(r.amount / r.chemical.critical_quantity) }}</td>
                   <td class="text-end">
                     <a class="btn btn-sm btn-outline-primary" href="{{ url_for('user.storage_edit', record_id=r.id) }}">编辑</a>
                     <form method="post" action="{{ url_for('user.storage_delete', record_id=r.id) }}" class="d-inline">

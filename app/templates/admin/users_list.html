@@ -4,6 +4,21 @@
 {% block page_title %}用户信息管理{% endblock %}
 {% block page_meta %}查询用户、维护启停状态与角色权限{% endblock %}
 {% block content %}
+<div class="admin-section-head">
+  <div>
+    <div class="fw-semibold">用户台账</div>
+    <div class="text-muted small">统一管理管理员与企业用户账号状态。</div>
+  </div>
+</div>
+
+{% set admin_count = users|selectattr('role', 'equalto', 'admin')|list|length %}
+{% set active_count = users|selectattr('is_active')|list|length %}
+<div class="row g-3 mb-3 admin-kpis">
+  <div class="col-md-4"><div class="card p-3"><div class="label">查询结果</div><div class="value">{{ users|length }}</div></div></div>
+  <div class="col-md-4"><div class="card p-3"><div class="label">管理员</div><div class="value">{{ admin_count }}</div></div></div>
+  <div class="col-md-4"><div class="card p-3"><div class="label">启用账号</div><div class="value">{{ active_count }}</div></div></div>
+</div>
+
 <div class="table-card">
   <form class="row g-2 mb-2" method="get">
     <div class="col-sm-9">
@@ -31,11 +46,11 @@
           <tr>
             <td>{{ u.username }}</td>
             <td>{{ '管理员' if u.is_admin else '普通用户' }}</td>
-            <td>
-              {% if u.is_active %}<span class="badge text-bg-success">启用</span>{% else %}<span class="badge text-bg-secondary">停用</span>{% endif %}
-            </td>
+            <td>{% if u.is_active %}<span class="badge text-bg-success">启用</span>{% else %}<span class="badge text-bg-secondary">停用</span>{% endif %}</td>
             <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin.users_edit', user_id=u.id) }}">维护</a></td>
           </tr>
+        {% else %}
+          <tr><td colspan="4" class="text-center text-muted py-4">暂无用户数据</td></tr>
         {% endfor %}
       </tbody>
     </table>

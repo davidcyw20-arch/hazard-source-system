@@ -5,8 +5,6 @@ from datetime import datetime
 import re
 from typing import Any
 
-from sqlalchemy.dialects.mysql import insert as mysql_insert
-
 from ..extensions import db
 from ..models import (
     GB_18218_2018,
@@ -79,86 +77,83 @@ def import_gb18218_full_seed_sql(
                 )
             )
 
-        # category_thresholds / category_betas: upsert by unique constraint.
+        # category_thresholds / category_betas: cross-db upsert via query-then-update/insert.
         for r in parsed["category_thresholds"]:
-            stmt = mysql_insert(CategoryThreshold.__table__).values(
+            existing_q = CategoryThreshold.query.filter_by(
                 gb_version=gb_version,
                 category_symbol=r["category_symbol"],
-                threshold_quantity=r["threshold_quantity"],
-                unit=r["unit"] or "t",
-                source=f"{gb_version} 表2",
-                note="由 GB18218_full_seed.sql 导入",
-            )
-            db.session.execute(
-                stmt.on_duplicate_key_update(
-                    threshold_quantity=stmt.inserted.threshold_quantity,
-                    unit=stmt.inserted.unit,
-                    source=stmt.inserted.source,
-                    note=stmt.inserted.note,
+            ).first()
+            if existing_q:
+                existing_q.threshold_quantity = r["threshold_quantity"]
+                existing_q.unit = r["unit"] or "t"
+                existing_q.source = f"{gb_version} 表2"
+                existing_q.note = "由 GB18218_full_seed.sql 导入"
+            else:
+                db.session.add(
+                    CategoryThreshold(
+                        gb_version=gb_version,
+                        category_symbol=r["category_symbol"],
+                        threshold_quantity=r["threshold_quantity"],
+                        unit=r["unit"] or "t",
+                        source=f"{gb_version} 表2",
+                        note="由 GB18218_full_seed.sql 导入",
+                    )
                 )
-            )
 
         for r in parsed["category_betas"]:
-            stmt = mysql_insert(CategoryBeta.__table__).values(
+            existing_b = CategoryBeta.query.filter_by(
                 gb_version=gb_version,
                 category_symbol=r["category_symbol"],
-                beta=r["beta"],
-                beta_source=r.get("beta_source") or "TABLE4",
-                source=f"{gb_version} 表4",
-                note="由 GB18218_full_seed.sql 导入",
-            )
-            db.session.execute(
-                stmt.on_duplicate_key_update(
-                    beta=stmt.inserted.beta,
-                    beta_source=stmt.inserted.beta_source,
-                    source=stmt.inserted.source,
-                    note=stmt.inserted.note,
-                )
-            )
-
-        # chemicals:
-        # - upsert by (name, cas_no) unique key (seed uses ON DUPLICATE KEY)
-        # - BUT (name, NULL) is NOT unique in MySQL, so we also try to update the latest (name, NULL) row.
-        for r in parsed["chemicals"]:
-            if r.get("cas_no") is None:
-                existing = (
-                    Chemical.query.filter(Chemical.name == r["name"], Chemical.cas_no.is_(None))
-                    .order_by(Chemical.updated_at.desc(), Chemical.id.desc())
-                    .first()
-                )
-                if existing:
-                    existing.gb_version = gb_version
-                    existing.category = r.get("category")
-                    existing.critical_quantity = r["critical_quantity"]
-                    existing.unit = r.get("unit") or "t"
-                    existing.source_standard = _normalize_source_standard(
-                        r.get("source_standard") or ""
+            ).first()
+            if existing_b:
+                existing_b.beta = r["beta"]
+                existing_b.beta_source = r.get("beta_source") or "TABLE4"
+                existing_b.source = f"{gb_version} 表4"
+                existing_b.note = "由 GB18218_full_seed.sql 导入"
+            else:
+                db.session.add(
+                    CategoryBeta(
+                        gb_version=gb_version,
+                        category_symbol=r["category_symbol"],
+                        beta=r["beta"],
+                        beta_source=r.get("beta_source") or "TABLE4",
+                        source=f"{gb_version} 表4",
+                        note="由 GB18218_full_seed.sql 导入",
                     )
-                    existing.updated_at = now
-                    continue
+                )
 
-            stmt = mysql_insert(Chemical.__table__).values(
-                gb_version=gb_version,
-                name=r["name"],
-                category=r.get("category"),
-                cas_no=r.get("cas_no"),
-                critical_quantity=r["critical_quantity"],
-                unit=r.get("unit") or "t",
-                source_standard=_normalize_source_standard(r.get("source_standard") or ""),
-                hazard_category_symbol=None,
-                beta=None,
-                beta_source=None,
-                created_at=now,
-                updated_at=now,
-            )
-            db.session.execute(
-                stmt.on_duplicate_key_update(
-                    gb_version=stmt.inserted.gb_version,
-                    category=stmt.inserted.category,
-                    critical_quantity=stmt.inserted.critical_quantity,
-                    unit=stmt.inserted.unit,
-                    source_standard=stmt.inserted.source_standard,
-                    updated_at=stmt.inserted.updated_at,
+        # chemicals: cross-db upsert by logical key (name + cas_no).
+        for r in parsed["chemicals"]:
+            q = Chemical.query.filter(Chemical.name == r["name"])
+            if r.get("cas_no") is None:
+                q = q.filter(Chemical.cas_no.is_(None))
+            else:
+                q = q.filter(Chemical.cas_no == r.get("cas_no"))
+            existing = q.order_by(Chemical.updated_at.desc(), Chemical.id.desc()).first()
+
+            if existing:
+                existing.gb_version = gb_version
+                existing.category = r.get("category")
+                existing.critical_quantity = r["critical_quantity"]
+                existing.unit = r.get("unit") or "t"
+                existing.source_standard = _normalize_source_standard(r.get("source_standard") or "")
+                existing.updated_at = now
+                continue
+
+            db.session.add(
+                Chemical(
+                    gb_version=gb_version,
+                    name=r["name"],
+                    category=r.get("category"),
+                    cas_no=r.get("cas_no"),
+                    critical_quantity=r["critical_quantity"],
+                    unit=r.get("unit") or "t",
+                    source_standard=_normalize_source_standard(r.get("source_standard") or ""),
+                    hazard_category_symbol=None,
+                    beta=None,
+                    beta_source=None,
+                    created_at=now,
+                    updated_at=now,
                 )
             )
 

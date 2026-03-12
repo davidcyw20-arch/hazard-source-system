@@ -179,12 +179,20 @@ def evaluate():
 def results_list():
     if current_user.is_admin:
         return redirect(url_for("admin.results_all"))
-    results = (
-        EvaluationResult.query.filter_by(owner_id=current_user.id)
-        .order_by(EvaluationResult.created_at.desc())
-        .all()
+    status = request.args.get("status", "").strip()
+    enterprise = request.args.get("enterprise", "").strip()
+    query = EvaluationResult.query.filter_by(owner_id=current_user.id)
+    if status:
+        query = query.filter_by(status=status)
+    if enterprise:
+        query = query.filter(EvaluationResult.enterprise_name.like(f"%{enterprise}%"))
+    results = query.order_by(EvaluationResult.created_at.desc()).all()
+    return render_template(
+        "user/results_list.html",
+        results=results,
+        status=status,
+        enterprise=enterprise,
     )
-    return render_template("user/results_list.html", results=results)
 
 
 @bp.get("/results/<int:result_id>")
